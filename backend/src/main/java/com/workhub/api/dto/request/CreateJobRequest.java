@@ -54,6 +54,16 @@ public class CreateJobRequest {
     @Min(value = 1, message = "Thời gian nghiệm thu tối thiểu 1 phút")
     private Integer reviewDays;
 
+    @Size(max = 200, message = "Địa điểm không được vượt quá 200 ký tự")
+    private String location;
+
+    private Long categoryId;
+
+    private Long subCategoryId;
+
+    @Size(max = 10, message = "Số lượng tag không được vượt quá 10")
+    private java.util.List<String> tags;
+
     private Long escrowId;
 
     @Size(max = 66, message = "Địa chỉ ví không hợp lệ")

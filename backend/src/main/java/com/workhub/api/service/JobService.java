@@ -9,12 +9,14 @@ import com.workhub.api.dto.response.JobResponse;
 import com.workhub.api.entity.*;
 import com.workhub.api.exception.JobNotFoundException;
 import com.workhub.api.exception.UnauthorizedAccessException;
+import com.workhub.api.repository.CategoryRepository;
 import com.workhub.api.repository.DisputeRepository;
 import com.workhub.api.repository.JobApplicationRepository;
 import com.workhub.api.repository.JobContractRepository;
 import com.workhub.api.repository.JobHistoryRepository;
 import com.workhub.api.repository.JobRepository;
 import com.workhub.api.repository.SavedJobRepository;
+import com.workhub.api.repository.SubCategoryRepository;
 import com.workhub.api.repository.WithdrawalRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -42,6 +44,8 @@ public class JobService {
     private final DisputeRepository disputeRepository;
     private final WithdrawalRequestRepository withdrawalRequestRepository;
     private final SavedJobRepository savedJobRepository;
+    private final CategoryRepository categoryRepository;
+    private final SubCategoryRepository subCategoryRepository;
     private final UserService userService;
     private final JobHistoryService jobHistoryService;
     private final NotificationService notificationService;
@@ -79,16 +83,38 @@ public class JobService {
                 ? req.getReviewDays()
                 : 2;
 
+        // Fetch category and subcategory if provided
+        Category category = null;
+        SubCategory subCategory = null;
+        if (req.getCategoryId() != null) {
+            category = categoryRepository.findById(req.getCategoryId()).orElse(null);
+        }
+        if (req.getSubCategoryId() != null) {
+            subCategory = subCategoryRepository.findById(req.getSubCategoryId()).orElse(null);
+        }
+
+        // Merge skills and tags
+        Set<String> allSkills = new HashSet<>();
+        if (req.getSkills() != null) {
+            allSkills.addAll(req.getSkills());
+        }
+        if (req.getTags() != null) {
+            allSkills.addAll(req.getTags());
+        }
+
         Job job = Job.builder()
                 .title(req.getTitle())
                 .description(req.getDescription())
                 .context(req.getContext())
                 .requirements(req.getRequirements())
                 .deliverables(req.getDeliverables())
-                .skills(req.getSkills() != null ? req.getSkills() : new HashSet<>())
+                .skills(allSkills.isEmpty() ? new HashSet<>() : allSkills)
                 .complexity(req.getComplexity() != null ? req.getComplexity() : EJobComplexity.INTERMEDIATE)
                 .duration(req.getDuration() != null ? req.getDuration() : EJobDuration.SHORT_TERM)
                 .workType(req.getWorkType() != null ? req.getWorkType() : EWorkType.PART_TIME)
+                .location(req.getLocation())
+                .category(category)
+                .subCategory(subCategory)
                 .budget(budget)
                 .escrowAmount(isDraft ? null : total)
                 .currency(req.getCurrency() != null ? req.getCurrency() : "APT")
@@ -164,7 +190,7 @@ public class JobService {
                 ? BigDecimal.valueOf(request.getMaxBudget())
                 : null;
 
-        List<EJobStatus> activeStatuses = Arrays.asList(EJobStatus.OPEN, EJobStatus.IN_PROGRESS);
+        List<EJobStatus> activeStatuses = java.util.Arrays.asList(EJobStatus.OPEN, EJobStatus.IN_PROGRESS);
 
         Page<Job> jobs = jobRepository.advancedSearch(
                 request.getKeyword(),
@@ -176,17 +202,17 @@ public class JobService {
                 minBudget,
                 maxBudget,
                 activeStatuses,
-                LocalDateTime.now(),
+                java.time.LocalDateTime.now(),
                 pageable);
 
         Page<JobResponse> response = jobs.map(this::buildJobResponse);
         return ApiResponse.success("Tìm kiếm thành công", response);
     }
 
-    int page,
-    int size, String sortBy,
-    String sortDir)
-    {
+    public ApiResponse<Page<JobResponse>> getMyJobs(Long employerId, EJobStatus status,
+            int page,
+            int size, String sortBy,
+            String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
