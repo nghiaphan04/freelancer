@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -36,6 +37,18 @@ const STATUS_OPTIONS: { value: ApplicationStatus | ""; label: string }[] = [
 ];
 
 export default function JobApplicationsTable() {
+  // Helper: append original file extension to Cloudinary raw URL so browser recognizes the file type
+  const getCvDownloadUrl = (cvFileUrl: string, cvFileName?: string) => {
+    if (!cvFileName) return cvFileUrl;
+    // Get extension from original filename (e.g. "pdf", "docx")
+    const ext = cvFileName.split('.').pop()?.toLowerCase();
+    if (!ext) return cvFileUrl;
+    // If URL already ends with an extension, skip
+    if (cvFileUrl.endsWith('.' + ext)) return cvFileUrl;
+    // Append extension to the URL path
+    return cvFileUrl + '.' + ext;
+  };
+
   const params = useParams();
   const router = useRouter();
   const jobId = Number(params.id);
@@ -385,14 +398,27 @@ export default function JobApplicationsTable() {
                         )}
                         <div>
                           <p className="font-medium text-gray-900">{app.freelancer.fullName}</p>
-                          {app.coverLetter && (
-                            <button
-                              onClick={() => { setViewingApp(app); setShowCoverLetterDialog(true); }}
-                              className="text-xs text-[#00b14f] hover:underline block"
-                            >
-                              Xem thư ứng tuyển
-                            </button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {app.coverLetter && (
+                              <button
+                                onClick={() => { setViewingApp(app); setShowCoverLetterDialog(true); }}
+                                className="text-xs text-[#00b14f] hover:underline"
+                              >
+                                Xem thư ứng tuyển
+                              </button>
+                            )}
+                            {app.cvFileUrl && (
+                              <a
+                                href={getCvDownloadUrl(app.cvFileUrl, app.cvFileName)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-0.5 text-xs text-red-500 hover:underline"
+                              >
+                                <Icon name="picture_as_pdf" size={14} />
+                                Xem CV
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -564,6 +590,23 @@ export default function JobApplicationsTable() {
                 <p className="text-gray-400 italic">Không có nội dung thư</p>
               )}
             </div>
+            {/* CV Attachment */}
+            {viewingApp?.cvFileUrl && (
+              <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <a
+                  href={getCvDownloadUrl(viewingApp.cvFileUrl, viewingApp.cvFileName)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <Icon name="picture_as_pdf" size={20} className="text-red-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{viewingApp.cvFileName || "CV.pdf"}</p>
+                    <p className="text-xs text-gray-500">Nhấn để xem CV</p>
+                  </div>
+                </a>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCoverLetterDialog(false)}>

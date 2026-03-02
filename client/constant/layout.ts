@@ -190,13 +190,13 @@ export const careerMenuLeft = [
 
 export const careerMenuArticles = [
   {
-    image: "/landing/slide1.png",
+    image: "/img-content/Marketing-Strategy.jpg",
     title: "Ngành Marketing là gì? Cơ hội việc làm mới nhất 2026",
     desc: "Marketing là một trong những ngành đóng vai trò quan trọng trong hầu hết các doanh nghiệp hiện đại...",
     href: "/blog/1"
   },
   {
-    image: "/landing/slide2.png",
+    image: "/img-content/so-yeu-li-lich.jpg",
     title: "Tài mẫu sơ yếu lý lịch xin việc chuẩn nhất 2026",
     desc: "Sơ yếu lý lịch là một trong những giấy tờ quan trọng nhất khi chuẩn bị hồ sơ xin việc, bởi nó...",
     href: "/blog/2"

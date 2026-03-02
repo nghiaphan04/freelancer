@@ -108,21 +108,6 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
                 </span>
               ))}
             </div>
-            
-            <div className="bg-[#00b14f]/5 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-6 border border-[#00b14f]/10">
-              <div className="flex-1 text-center md:text-left">
-                <h3 className="text-xl font-bold text-[#00b14f] mb-2">Bạn đang tìm kiếm cơ hội mới?</h3>
-                <p className="text-gray-600 mb-6">Hàng ngàn việc làm freelancer hấp dẫn đang chờ đón bạn. Tạo hồ sơ ngay hôm nay!</p>
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                  <Link href="/jobs" className="px-6 py-3 bg-[#00b14f] text-white font-bold rounded-lg hover:bg-[#008e3f] transition-all shadow-md hover:shadow-lg">
-                    Tìm việc ngay
-                  </Link>
-                  <Link href="/register" className="px-6 py-3 border border-[#00b14f] text-[#00b14f] font-bold rounded-lg hover:bg-white transition-all">
-                    Đăng ký tài khoản
-                  </Link>
-                </div>
-              </div>
-            </div>
           </footer>
         </article>
 

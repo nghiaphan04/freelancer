@@ -198,7 +198,7 @@ export const api = {
     request<Job>(`/api/jobs/${id}/repost`, { method: "POST", body: JSON.stringify(data) }),
 
   // Job Applications
-  applyJob: (jobId: number, data: { coverLetter?: string; walletAddress: string }) =>
+  applyJob: (jobId: number, data: { coverLetter?: string; walletAddress: string; cvFileId?: number }) =>
     request<JobApplication>(`/api/jobs/${jobId}/apply`, { method: "POST", body: JSON.stringify(data) }),
 
   getMyApplicationForJob: (jobId: number) =>
@@ -823,6 +823,8 @@ export interface JobApplication {
   coverLetter?: string;
   status: ApplicationStatus;
   walletAddress?: string;
+  cvFileUrl?: string;
+  cvFileName?: string;
   workStatus?: WorkStatus;
   workStatusLabel?: string;
   workSubmissionUrl?: string;
