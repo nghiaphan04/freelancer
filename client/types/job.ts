@@ -91,6 +91,10 @@ export interface CreateJobRequest {
   workType?: WorkType;
   budget?: number;
   currency?: string;
+  location?: string;           // Địa điểm làm việc
+  categoryId?: number;        // ID danh mục
+  subCategoryId?: number;     // ID danh mục con
+  tags?: string[];            // Tags bổ sung
   applicationDeadline?: string;
   submissionDays?: number;
   reviewDays?: number;

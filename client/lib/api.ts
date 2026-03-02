@@ -11,7 +11,7 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-async function request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const token = getAccessToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -28,18 +28,19 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<ApiR
     ...options,
   });
   
-  const data = await res.json();
+  const json = await res.json();
   
   // Log for debugging
   if (!res.ok) {
-    console.error(`API Error [${res.status}] ${endpoint}:`, data);
-    // Log validation errors if present
-    if (data.data && typeof data.data === 'object') {
-      console.error('Validation errors:', JSON.stringify(data.data, null, 2));
+    console.error(`API Error [${res.status}] ${endpoint}:`, json);
+    if (json.data && typeof json.data === 'object') {
+      console.error('Validation errors:', JSON.stringify(json.data, null, 2));
     }
+    throw new Error(json.message || 'API request failed');
   }
   
-  return data;
+  // Return the actual data from ApiResponse wrapper
+  return json.data;
 }
 
 export const api = {
