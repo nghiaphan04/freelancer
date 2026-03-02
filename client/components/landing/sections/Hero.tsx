@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Icon from "@/components/ui/Icon";
 import { LocationPicker } from "@/components/ui/location-picker";
-import { jobCategories, provinces, bannerSlides } from "@/constant/landing";
+import { api } from "@/lib/api";
+import { Category } from "@/types/category";
+import { provinces, bannerSlides } from "@/constant/landing";
 
 export default function Hero() {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedProvinces, setSelectedProvinces] = useState<number[]>([]);
@@ -14,6 +18,29 @@ export default function Hero() {
   const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Search state
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchLocation, setSearchLocation] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await api.getCategoriesWithJobCounts();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -22,10 +49,31 @@ export default function Hero() {
     return () => clearInterval(timer);
   }, []);
 
+  // Handle search submit
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchKeyword.trim() && !searchLocation.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      // Build search params
+      const params = new URLSearchParams();
+      if (searchKeyword.trim()) params.append("keyword", searchKeyword.trim());
+      if (searchLocation.trim()) params.append("location", searchLocation.trim());
+      
+      // Navigate to jobs page with search params
+      router.push(`/jobs?${params.toString()}`);
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const itemsPerPage = 6;
-  const totalPages = Math.ceil(jobCategories.length / itemsPerPage);
+  const totalPages = Math.ceil(categories.length / itemsPerPage);
   
-  const currentCategories = jobCategories.slice(
+  const currentCategories = categories.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -57,7 +105,7 @@ export default function Hero() {
       <div className="max-w-6xl mx-auto px-4 relative z-[100]">
         
         {/* Search Bar */}
-        <div className="bg-white rounded-2xl md:rounded-full p-2 md:p-1.5 flex flex-col md:flex-row items-stretch md:items-center gap-2 mb-6 shadow-lg relative z-[9999]">
+        <form onSubmit={handleSearch} className="bg-white rounded-2xl md:rounded-full p-2 md:p-1.5 flex flex-col md:flex-row items-stretch md:items-center gap-2 mb-6 shadow-lg relative z-[9999]">
           {/* Search input + Location picker row */}
           <div className="flex-1 flex items-center">
             <div className="flex-1 flex items-center px-3 md:px-4">
@@ -65,6 +113,8 @@ export default function Hero() {
               <input
                 type="text"
                 placeholder="Vị trí tuyển dụng, tên công ty"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
                 className="w-full py-2 outline-none text-gray-700 placeholder-gray-400 text-sm md:text-base"
               />
             </div>
@@ -78,11 +128,15 @@ export default function Hero() {
             />
           </div>
 
-          <button className="bg-[#00b14f] hover:bg-[#009643] text-white px-4 md:px-6 py-2.5 rounded-full font-medium flex items-center justify-center gap-2 transition-colors">
+          <button 
+            type="submit"
+            disabled={isSearching}
+            className="bg-[#00b14f] hover:bg-[#009643] text-white px-4 md:px-6 py-2.5 rounded-full font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          >
             <Icon name="search" size={18} />
-            <span>Tìm kiếm</span>
+            <span>{isSearching ? "Đang tìm..." : "Tìm kiếm"}</span>
           </button>
-        </div>
+        </form>
 
         {/* Mobile Job Categories Button */}
         <button
@@ -99,7 +153,7 @@ export default function Hero() {
         {mobileMenuOpen && (
           <div className="md:hidden bg-white rounded-xl shadow-lg mb-4 overflow-hidden">
             <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
-              {jobCategories.map((category) => (
+              {categories.map((category) => (
                 <div key={category.id} className="border-b border-gray-100 last:border-b-0">
                   <button
                     onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
@@ -116,7 +170,7 @@ export default function Hero() {
                   {expandedCategory === category.id && (
                     <div className="bg-gray-50 px-4 py-2">
                       <div className="flex flex-wrap gap-2">
-                        {category.popular.map((tag, idx) => (
+                        {(category.popularTags || []).map((tag, idx) => (
                           <a
                             key={idx}
                             href="#"
@@ -127,19 +181,19 @@ export default function Hero() {
                           </a>
                         ))}
                       </div>
-                      {category.subCategories.length > 0 && (
+                      {category.subCategories && category.subCategories.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-gray-200">
                           {category.subCategories.map((subCat, idx) => (
                             <div key={idx} className="mb-2 last:mb-0">
                               <p className="text-xs font-semibold text-gray-500 mb-1">{subCat.name}</p>
                               <div className="flex flex-wrap gap-1">
-                                {subCat.tags.map((tag, tIdx) => (
+                                {(subCat.tags || []).map((tag, tIdx) => (
                                   <a
                                     key={tIdx}
                                     href="#"
                                     className="px-2 py-1 bg-white rounded text-xs text-gray-600 hover:text-[#00b14f] transition-colors"
                                   >
-                                    {tag}
+                                    {tag.name}
                                   </a>
                                 ))}
                               </div>
@@ -219,7 +273,7 @@ export default function Hero() {
               onMouseLeave={() => setHoveredCategory(null)}
             >
               {(() => {
-                const category = jobCategories.find(c => c.id === hoveredCategory);
+                const category = categories.find(c => c.id === hoveredCategory);
                 if (!category) return null;
                 return (
                   <div className="p-5 overflow-y-auto flex-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -227,7 +281,7 @@ export default function Hero() {
                     <div className="mb-5">
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Được tìm kiếm nhiều</h4>
                       <div className="flex flex-wrap gap-2">
-                        {category.popular.map((tag, idx) => (
+                        {(category.popularTags || []).map((tag, idx) => (
                           <a
                             key={idx}
                             href="#"
@@ -241,19 +295,19 @@ export default function Hero() {
                     </div>
 
                     {/* Sub Categories */}
-                    {category.subCategories.length > 0 && (
+                    {category.subCategories && category.subCategories.length > 0 && (
                       <div className="space-y-4">
                         {category.subCategories.map((subCat, idx) => (
                           <div key={idx}>
                             <h5 className="text-sm font-semibold text-gray-700 mb-2">{subCat.name}</h5>
                             <div className="flex flex-wrap gap-2">
-                              {subCat.tags.map((tag, tIdx) => (
+                              {(subCat.tags || []).map((tag, tIdx) => (
                                 <a
                                   key={tIdx}
                                   href="#"
                                   className="px-3 py-1.5 bg-gray-50 rounded-full text-sm text-gray-600 hover:bg-[#e8f5e9] hover:text-[#00b14f] transition-colors"
                                 >
-                                  {tag}
+                                  {tag.name}
                                 </a>
                               ))}
                             </div>

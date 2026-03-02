@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef } from "react";
-import { productCategories } from "@/constant/landing";
+import { useRef, useState, useEffect } from "react";
+import Icon from "@/components/ui/Icon";
+import { api } from "@/lib/api";
+import { Category } from "@/types/category";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   dev: (
@@ -116,8 +118,54 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 export default function Products() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
- 
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await api.getCategoriesWithJobCounts();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Map category to icon type
+  const getIconType = (categoryName: string): string => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('it') || name.includes('lập trình') || name.includes('phát triển')) return 'dev';
+    if (name.includes('thiết kế') || name.includes('design')) return 'design';
+    if (name.includes('ai') || name.includes('trí tuệ')) return 'ai';
+    if (name.includes('marketing') || name.includes('tiếp thị')) return 'marketing';
+    if (name.includes('viết') || name.includes('content') || name.includes('biên tập')) return 'writing';
+    if (name.includes('hành chính') || name.includes('admin')) return 'admin';
+    if (name.includes('tài chính') || name.includes('kế toán')) return 'finance';
+    if (name.includes('luật') || name.includes('pháp lý')) return 'legal';
+    if (name.includes('nhân sự') || name.includes('hr')) return 'hr';
+    if (name.includes('kỹ thuật') || name.includes('engineering')) return 'engineering';
+    return 'dev'; // default
+  };
+
+  if (loading) {
+    return (
+      <section className="py-10 bg-white relative z-0">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center py-8">
+            <Icon name="refresh" size={24} className="animate-spin text-[#00b14f] mx-auto mb-2" />
+            <p className="text-gray-600">Đang tải danh mục...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-10 bg-white relative z-0">
       <div className="max-w-6xl mx-auto px-4">
@@ -132,8 +180,6 @@ export default function Products() {
               <a href="#" className="text-[#00b14f] hover:underline">tại đây</a>
             </p>
           </div>
-          
-       
         </div>
 
         {/* Categories Grid */}
@@ -142,7 +188,7 @@ export default function Products() {
           className="grid grid-cols-2 md:grid-cols-4 gap-4 overflow-x-auto"
           style={{ scrollbarWidth: "none" }}
         >
-          {productCategories.map((category) => (
+          {categories.map((category) => (
             <a
               key={category.id}
               href="#"
@@ -150,7 +196,7 @@ export default function Products() {
             >
               {/* Icon */}
               <div className="flex justify-center mb-4 group-hover:scale-110 transition-transform">
-                {categoryIcons[category.iconType]}
+                {categoryIcons[getIconType(category.name)]}
               </div>
               
               {/* Category Name */}
@@ -160,7 +206,7 @@ export default function Products() {
               
               {/* Job Count */}
               <p className="text-[#00b14f] font-semibold">
-                {category.jobs.toLocaleString("vi-VN")} việc làm
+                {(category.jobCount || 0).toLocaleString("vi-VN")} việc làm
               </p>
             </a>
           ))}
