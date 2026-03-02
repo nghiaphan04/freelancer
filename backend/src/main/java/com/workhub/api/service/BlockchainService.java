@@ -40,6 +40,8 @@ public class BlockchainService {
     private String adminAddress;
     private boolean initialized = false;
 
+
+
     @PostConstruct
     public void init() {
         if (adminPrivateKey == null || adminPrivateKey.isEmpty()) {
@@ -127,6 +129,13 @@ public class BlockchainService {
         return submitTransaction(
             contractAddress + "::dispute::admin_resolve_timeout_and_claim",
             new String[]{blockchainDisputeId.toString()}
+        );
+    }
+
+    public String signStartVoting(Long blockchainDisputeId) {
+        return submitTransaction(
+                contractAddress + "::dispute::start_voting",
+                new String[]{blockchainDisputeId.toString()}
         );
     }
 

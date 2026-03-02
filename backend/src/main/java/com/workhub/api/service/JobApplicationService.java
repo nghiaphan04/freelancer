@@ -54,8 +54,9 @@ public class JobApplicationService {
             throw new IllegalStateException("Vui lòng kết nối ví Aptos để ứng tuyển");
         }
 
-        JobApplication existingApplication = jobApplicationRepository.findByJobIdAndFreelancerId(jobId, userId).orElse(null);
-        
+        JobApplication existingApplication = jobApplicationRepository.findByJobIdAndFreelancerId(jobId, userId)
+                .orElse(null);
+
         if (existingApplication != null && !existingApplication.canReapply()) {
             throw new IllegalStateException("Bạn đã ứng tuyển vào công việc này rồi");
         }
@@ -74,7 +75,7 @@ public class JobApplicationService {
                     .status(EApplicationStatus.PENDING)
                     .build();
             saved = jobApplicationRepository.save(application);
-            
+
             job.incrementApplicationCount();
             jobRepository.save(job);
         }
@@ -88,7 +89,7 @@ public class JobApplicationService {
     }
 
     public ApiResponse<Page<JobApplicationResponse>> getMyApplications(Long userId, EApplicationStatus status,
-                                                                        int page, int size) {
+            int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         Page<JobApplication> applications;
@@ -171,7 +172,7 @@ public class JobApplicationService {
         Job job = application.getJob();
         job.setStatus(EJobStatus.PENDING_SIGNATURE);
         job.setFreelancerWalletAddress(application.getWalletAddress());
-        job.setAcceptedAt(LocalDateTime.now());  // Lưu thời điểm duyệt để tính hạn ký 24h
+        job.setAcceptedAt(LocalDateTime.now()); // Lưu thời điểm duyệt để tính hạn ký 24h
         jobRepository.save(job);
 
         Long jobId = job.getId();
@@ -197,7 +198,7 @@ public class JobApplicationService {
         }
         List<JobApplication> otherPendingApplications = jobApplicationRepository
                 .findByJobIdAndStatusAndIdNot(jobId, EApplicationStatus.PENDING, applicationId);
-        
+
         for (JobApplication other : otherPendingApplications) {
             other.reject();
         }
@@ -215,7 +216,7 @@ public class JobApplicationService {
         }
 
         int rejectedCount = otherPendingApplications.size();
-        String message = rejectedCount > 0 
+        String message = rejectedCount > 0
                 ? "Đã duyệt đơn ứng tuyển và từ chối " + rejectedCount + " đơn khác"
                 : "Đã duyệt đơn ứng tuyển";
 
@@ -291,10 +292,10 @@ public class JobApplicationService {
         }
 
         BatchRejectResult result = new BatchRejectResult(successCount, failCount);
-        String message = successCount > 0 
-                ? "Đã từ chối " + successCount + " người làm" 
+        String message = successCount > 0
+                ? "Đã từ chối " + successCount + " người làm"
                 : "Không có đơn nào được từ chối";
-        
+
         return ApiResponse.success(message, result);
     }
 
@@ -309,7 +310,8 @@ public class JobApplicationService {
         User freelancer = application.getFreelancer();
         Job job = application.getJob();
 
-        JobApplicationResponse.FreelancerResponse freelancerResponse = JobApplicationResponse.FreelancerResponse.builder()
+        JobApplicationResponse.FreelancerResponse freelancerResponse = JobApplicationResponse.FreelancerResponse
+                .builder()
                 .id(freelancer.getId())
                 .fullName(freelancer.getFullName())
                 .avatarUrl(freelancer.getAvatarUrl())

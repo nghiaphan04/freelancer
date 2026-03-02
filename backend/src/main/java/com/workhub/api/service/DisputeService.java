@@ -43,8 +43,8 @@ public class DisputeService {
     private final BlockchainService blockchainService;
 
     // FOR TESTING: 48h -> 3 minutes, 24h -> 1.5 minutes
-    private static final int EVIDENCE_DEADLINE_SECONDS = 180; // 3 minutes (was 48h)
-    private static final int VOTE_DEADLINE_SECONDS = 180; // 3 minutes (was 48h)
+    private static final int EVIDENCE_DEADLINE_SECONDS = 3600 ; // 3 minutes (was 48h)
+    private static final int VOTE_DEADLINE_SECONDS = 3600; // 3 minutes (was 48h)
 
     @Transactional
     public ApiResponse<DisputeResponse> createDispute(Long jobId, Long userId, CreateDisputeRequest req, String txHash) {
@@ -168,7 +168,19 @@ public class DisputeService {
         dispute.startVoting();
         disputeRepository.save(dispute);
         createRound(dispute, 1);
-        log.info("Started voting process for dispute {}", dispute.getId());
+
+        if (dispute.getBlockchainDisputeId() != null && blockchainService.isInitialized()) {
+            try {
+                String txHash = blockchainService.signStartVoting(dispute.getBlockchainDisputeId());
+                log.info("Started voting process for dispute {} - on-chain voting started, tx={}",
+                        dispute.getId(), txHash);
+            } catch (Exception e) {
+                log.error("Failed to start on-chain voting for dispute {}: {}", dispute.getId(), e.getMessage());
+            }
+        } else {
+            log.info("Started voting process for dispute {} (no on-chain dispute ID or blockchain disabled)",
+                    dispute.getId());
+        }
     }
 
     @Transactional

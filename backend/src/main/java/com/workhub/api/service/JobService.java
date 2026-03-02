@@ -121,21 +121,22 @@ public class JobService {
     }
 
     public ApiResponse<Page<JobResponse>> getOpenJobs(int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Job> jobs = jobRepository.findByStatusAndNotExpired(EJobStatus.OPEN, java.time.LocalDateTime.now(), pageable);
+        Page<Job> jobs = jobRepository.findByStatusAndNotExpired(EJobStatus.OPEN, java.time.LocalDateTime.now(),
+                pageable);
         Page<JobResponse> response = jobs.map(this::buildJobResponse);
 
         return ApiResponse.success("Thành công", response);
     }
 
-    public ApiResponse<Page<JobResponse>> getMyJobs(Long employerId, EJobStatus status, 
-                                                     int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
+    public ApiResponse<Page<JobResponse>> getMyJobs(Long employerId, EJobStatus status,
+            int page, int size, String sortBy, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
@@ -151,7 +152,7 @@ public class JobService {
     }
 
     public ApiResponse<Page<JobResponse>> getFreelancerWorkingJobs(Long freelancerId, EJobStatus status,
-                                                                    int page, int size, String sortBy, String sortDir) {
+            int page, int size, String sortBy, String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
@@ -178,7 +179,8 @@ public class JobService {
         return ApiResponse.success("Thành công", stats);
     }
 
-    public record FreelancerJobStats(long inProgress, long completed, long disputed, long totalEarnings) {}
+    public record FreelancerJobStats(long inProgress, long completed, long disputed, long totalEarnings) {
+    }
 
     public ApiResponse<Page<JobResponse>> searchJobs(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -189,7 +191,8 @@ public class JobService {
 
     public ApiResponse<Page<JobResponse>> getJobsBySkills(List<String> skills, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Job> jobs = jobRepository.findBySkillsAndStatus(skills, EJobStatus.OPEN, java.time.LocalDateTime.now(), pageable);
+        Page<Job> jobs = jobRepository.findBySkillsAndStatus(skills, EJobStatus.OPEN, java.time.LocalDateTime.now(),
+                pageable);
         Page<JobResponse> response = jobs.map(this::buildJobResponse);
         return ApiResponse.success("Thành công", response);
     }
@@ -210,7 +213,8 @@ public class JobService {
             throw new IllegalStateException("Không thể chỉnh sửa job đã có người ứng tuyển");
         }
 
-        boolean hasAcceptedApplication = jobApplicationRepository.existsByJobIdAndStatus(jobId, EApplicationStatus.ACCEPTED);
+        boolean hasAcceptedApplication = jobApplicationRepository.existsByJobIdAndStatus(jobId,
+                EApplicationStatus.ACCEPTED);
         if (hasAcceptedApplication) {
             throw new IllegalStateException("Không thể chỉnh sửa job đã có người làm tham gia");
         }
@@ -229,8 +233,7 @@ public class JobService {
                 req.getCurrency(),
                 req.getApplicationDeadline(),
                 req.getSubmissionDays(),
-                req.getReviewDays()
-        );
+                req.getReviewDays());
 
         if (req.getTxHash() != null) {
             job.setEscrowTxHash(req.getTxHash());
@@ -252,7 +255,8 @@ public class JobService {
             if (req.getTxHash() == null || req.getTxHash().isBlank()) {
                 throw new IllegalStateException("Cần xác nhận giao dịch từ hệ thống");
             }
-            BigDecimal feeAmount = job.getBudget().multiply(FEE_PERCENT).divide(new BigDecimal("100"), 8, RoundingMode.CEILING);
+            BigDecimal feeAmount = job.getBudget().multiply(FEE_PERCENT).divide(new BigDecimal("100"), 8,
+                    RoundingMode.CEILING);
             job.setEscrowAmount(job.getBudget().add(feeAmount));
             job.setStatus(EJobStatus.OPEN);
             message = "Đã công khai công việc";
@@ -304,10 +308,13 @@ public class JobService {
                         .job(updatedJob)
                         .budget(req.getBudget() != null ? req.getBudget() : updatedJob.getBudget())
                         .currency(updatedJob.getCurrency() != null ? updatedJob.getCurrency() : "APT")
-                        .deadlineDays(req.getSubmissionDays() != null ? req.getSubmissionDays() : updatedJob.getSubmissionDays())
+                        .deadlineDays(req.getSubmissionDays() != null ? req.getSubmissionDays()
+                                : updatedJob.getSubmissionDays())
                         .reviewDays(req.getReviewDays() != null ? req.getReviewDays() : updatedJob.getReviewDays())
-                        .requirements(req.getRequirements() != null ? req.getRequirements() : updatedJob.getRequirements())
-                        .deliverables(req.getDeliverables() != null ? req.getDeliverables() : updatedJob.getDeliverables())
+                        .requirements(
+                                req.getRequirements() != null ? req.getRequirements() : updatedJob.getRequirements())
+                        .deliverables(
+                                req.getDeliverables() != null ? req.getDeliverables() : updatedJob.getDeliverables())
                         .termsJson(termsJson)
                         .employerSigned(true)
                         .employerSignedAt(java.time.LocalDateTime.now())
@@ -353,7 +360,8 @@ public class JobService {
             if (job.getApplicationCount() > 0) {
                 throw new IllegalStateException("Không thể chuyển về Bản nháp khi đã có người ứng tuyển");
             }
-            boolean hasAcceptedApplication = jobApplicationRepository.existsByJobIdAndStatus(jobId, EApplicationStatus.ACCEPTED);
+            boolean hasAcceptedApplication = jobApplicationRepository.existsByJobIdAndStatus(jobId,
+                    EApplicationStatus.ACCEPTED);
             if (hasAcceptedApplication) {
                 throw new IllegalStateException("Không thể chuyển về Bản nháp khi đã có người làm tham gia");
             }
@@ -363,10 +371,10 @@ public class JobService {
         }
 
         Job updatedJob = jobRepository.save(job);
-        String message = updatedJob.getStatus() == EJobStatus.OPEN 
-                ? "Đã đăng tin công khai" 
+        String message = updatedJob.getStatus() == EJobStatus.OPEN
+                ? "Đã đăng tin công khai"
                 : "Đã chuyển về bản nháp";
-        
+
         return ApiResponse.success(message, buildJobResponse(updatedJob));
     }
 
@@ -380,7 +388,7 @@ public class JobService {
         }
 
         EJobStatus status = job.getStatus();
-        
+
         if (status != EJobStatus.DRAFT) {
             throw new IllegalStateException("Chỉ có thể hủy job ở trạng thái Bản nháp");
         }
@@ -398,7 +406,7 @@ public class JobService {
                 .action(EJobHistoryAction.JOB_CANCELLED)
                 .description("Đã hủy công việc" + (txHash != null ? " - TxHash: " + txHash : ""))
                 .build());
-        
+
         return ApiResponse.success("Đã hủy công việc thành công");
     }
 
@@ -431,7 +439,8 @@ public class JobService {
                 throw new IllegalStateException("Cần cung cấp địa chỉ ví");
             }
 
-            BigDecimal feeAmount = job.getBudget().multiply(FEE_PERCENT).divide(new BigDecimal("100"), 8, RoundingMode.CEILING);
+            BigDecimal feeAmount = job.getBudget().multiply(FEE_PERCENT).divide(new BigDecimal("100"), 8,
+                    RoundingMode.CEILING);
             job.setEscrowAmount(job.getBudget().add(feeAmount));
             job.setEscrowId(req.getEscrowId());
             job.setEmployerWalletAddress(req.getWalletAddress());
@@ -481,7 +490,8 @@ public class JobService {
                 .description("Đã đăng lại công việc" + (isDraft ? " (bản nháp)" : ""))
                 .build());
 
-        return ApiResponse.success(isDraft ? "Đã đăng lại dạng bản nháp" : "Đã đăng lại thành công", buildJobResponse(savedJob));
+        return ApiResponse.success(isDraft ? "Đã đăng lại dạng bản nháp" : "Đã đăng lại thành công",
+                buildJobResponse(savedJob));
     }
 
     public Job getById(Long id) {
@@ -512,7 +522,7 @@ public class JobService {
 
     public JobResponse buildJobResponse(Job job) {
         User employer = job.getEmployer();
-        
+
         JobResponse.EmployerResponse employerResponse = JobResponse.EmployerResponse.builder()
                 .id(employer.getId())
                 .fullName(employer.getFullName())
@@ -548,14 +558,15 @@ public class JobService {
         String workSubmissionNote = null;
         java.time.LocalDateTime workSubmittedAt = null;
         JobResponse.FreelancerResponse freelancerResponse = null;
-        var acceptedAppOpt = jobApplicationRepository.findFirstByJobIdAndStatus(job.getId(), EApplicationStatus.ACCEPTED);
+        var acceptedAppOpt = jobApplicationRepository.findFirstByJobIdAndStatus(job.getId(),
+                EApplicationStatus.ACCEPTED);
         if (acceptedAppOpt.isPresent()) {
             var application = acceptedAppOpt.get();
             workStatus = application.getWorkStatus();
             workSubmissionUrl = application.getWorkSubmissionUrl();
             workSubmissionNote = application.getWorkSubmissionNote();
             workSubmittedAt = application.getWorkSubmittedAt();
-            
+
             var freelancer = application.getFreelancer();
             if (freelancer != null) {
                 freelancerResponse = JobResponse.FreelancerResponse.builder()
@@ -601,8 +612,8 @@ public class JobService {
                 .refundTxHash(job.getRefundTxHash())
                 .pendingBlockchainAction(job.getPendingBlockchainAction())
                 .acceptedAt(job.getAcceptedAt())
-                // FOR TESTING: 24h -> 90 seconds
-                .signDeadline(job.getAcceptedAt() != null ? job.getAcceptedAt().plusSeconds(90) : null)
+                // FOR TESTING: 24h -> 60 minutes
+                .signDeadline(job.getAcceptedAt() != null ? job.getAcceptedAt().plusMinutes(60) : null)
                 .contractSignedAt(job.getContractSignedAt())
                 .jobWorkSubmittedAt(job.getWorkSubmittedAt())
                 .workStatus(workStatus)
@@ -615,7 +626,7 @@ public class JobService {
 
     public JobResponse buildJobResponseWithWorkInfo(Job job, Long freelancerId) {
         JobResponse response = buildJobResponse(job);
-        
+
         jobApplicationRepository.findByJobIdAndFreelancerId(job.getId(), freelancerId)
                 .ifPresent(application -> {
                     response.setWorkStatus(application.getWorkStatus());
@@ -623,7 +634,7 @@ public class JobService {
                     response.setWorkSubmissionNote(application.getWorkSubmissionNote());
                     response.setWorkSubmittedAt(application.getWorkSubmittedAt());
                 });
-        
+
         return response;
     }
 
@@ -655,7 +666,6 @@ public class JobService {
         job.setFreelancerWalletAddress(null);
         job.clearPendingBlockchainAction();
         jobRepository.save(job);
-
 
         jobHistoryService.logHistory(job, admin, EJobHistoryAction.JOB_REOPENED,
                 "Admin đã xử lý: hủy người làm do quá hạn nộp sản phẩm");
@@ -695,7 +705,6 @@ public class JobService {
         job.clearPendingBlockchainAction();
         jobRepository.save(job);
 
-
         jobHistoryService.logHistory(job, admin, EJobHistoryAction.AUTO_APPROVED,
                 "Admin đã xử lý: thanh toán tự động do quá hạn duyệt");
         jobHistoryService.logHistory(job, admin, EJobHistoryAction.JOB_COMPLETED,
@@ -711,8 +720,7 @@ public class JobService {
     public ApiResponse<Page<JobResponse>> getPendingBlockchainActions(int page, int size) {
         Page<Job> jobs = jobRepository.findByPendingBlockchainActionNot(
                 EPendingBlockchainAction.NONE,
-                PageRequest.of(page, size, Sort.by("updatedAt").descending())
-        );
+                PageRequest.of(page, size, Sort.by("updatedAt").descending()));
         Page<JobResponse> responses = jobs.map(this::buildJobResponse);
         return ApiResponse.success("Thành công", responses);
     }

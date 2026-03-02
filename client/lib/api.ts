@@ -1,4 +1,4 @@
-import { User } from "@/types/user";
+import { Category } from "@/types/category";
 import { Job, Page, CreateJobRequest, UpdateJobRequest, JobStatus, JobHistory } from "@/types/job";
 import { getAccessToken } from "@/constant/auth";
 

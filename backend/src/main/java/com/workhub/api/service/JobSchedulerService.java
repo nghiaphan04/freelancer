@@ -101,17 +101,17 @@ public class JobSchedulerService {
             try {
                 String txHash = blockchainService.signRefundExpiredJob(job.getEscrowId());
                 log.info("Job {} application expired - Refunded to poster - TX: {}", job.getId(), txHash);
-                
+
                 job.setStatus(EJobStatus.EXPIRED);
                 job.setRefundTxHash(txHash);
-                
+
                 jobHistoryService.logHistory(job, employer, EJobHistoryAction.JOB_EXPIRED,
                         "Hết hạn ứng tuyển. Đã hoàn tiền cho " + employerName);
                 notificationService.notifyJobExpired(employer, job);
             } catch (Exception e) {
                 log.error("Blockchain refund failed for job {}: {}", job.getId(), e.getMessage());
                 job.setStatus(EJobStatus.EXPIRED);
-                
+
                 jobHistoryService.logHistory(job, employer, EJobHistoryAction.JOB_EXPIRED,
                         "Hết hạn ứng tuyển. Hoàn tiền blockchain thất bại: " + e.getMessage());
                 notificationService.notifyBlockchainFailed(employer, job, "hoàn tiền hết hạn ứng tuyển");
@@ -122,12 +122,12 @@ public class JobSchedulerService {
                     "Hết hạn ứng tuyển.");
             notificationService.notifyJobExpired(employer, job);
         }
-        
+
         jobRepository.save(job);
     }
 
     private void checkSigningDeadlinesInternal() {
-        LocalDateTime deadline = LocalDateTime.now().minusSeconds(90);
+        LocalDateTime deadline = LocalDateTime.now().minusMinutes(60);
         List<Job> overdueJobs = jobRepository.findByStatusAndAcceptedAtBefore(EJobStatus.PENDING_SIGNATURE, deadline);
 
         for (Job job : overdueJobs) {
@@ -143,7 +143,8 @@ public class JobSchedulerService {
         JobApplication application = jobApplicationRepository
                 .findFirstByJobIdAndStatus(job.getId(), EApplicationStatus.ACCEPTED)
                 .orElse(null);
-        if (application == null) return;
+        if (application == null)
+            return;
 
         User freelancer = application.getFreelancer();
         User employer = job.getEmployer();
@@ -153,7 +154,7 @@ public class JobSchedulerService {
             try {
                 String txHash = blockchainService.signRemoveFreelancerSigningTimeout(job.getEscrowId());
                 log.info("Job {} signing timeout - Freelancer removed - TX: {}", job.getId(), txHash);
-                
+
                 job.setStatus(EJobStatus.OPEN);
                 job.setFreelancerWalletAddress(null);
                 application.setStatus(EApplicationStatus.REJECTED);
@@ -161,7 +162,7 @@ public class JobSchedulerService {
                 jobRepository.save(job);
 
                 jobHistoryService.logHistory(job, freelancer, EJobHistoryAction.FREELANCER_TIMEOUT,
-                        freelancerName + " không ký hợp đồng trong 1p30s. Đã xóa khỏi blockchain.");
+                        freelancerName + " không ký hợp đồng trong 60 phút. Đã xóa khỏi blockchain.");
                 notificationService.notifySigningTimeout(freelancer, job);
                 notificationService.notifyEmployerCanRemoveFreelancer(employer, job);
             } catch (Exception e) {
@@ -179,7 +180,7 @@ public class JobSchedulerService {
             jobRepository.save(job);
 
             jobHistoryService.logHistory(job, freelancer, EJobHistoryAction.FREELANCER_TIMEOUT,
-                    freelancerName + " không ký hợp đồng trong 1p30s.");
+                    freelancerName + " không ký hợp đồng trong 60 phút.");
             notificationService.notifySigningTimeout(freelancer, job);
             notificationService.notifyEmployerCanRemoveFreelancer(employer, job);
         }
@@ -215,7 +216,8 @@ public class JobSchedulerService {
         JobApplication application = jobApplicationRepository
                 .findFirstByJobIdAndStatus(job.getId(), EApplicationStatus.ACCEPTED)
                 .orElse(null);
-        if (application == null || application.isWorkSubmitted()) return;
+        if (application == null || application.isWorkSubmitted())
+            return;
 
         User freelancer = application.getFreelancer();
         User employer = job.getEmployer();
@@ -225,7 +227,7 @@ public class JobSchedulerService {
             try {
                 String txHash = blockchainService.signRemoveFreelancerSubmissionTimeout(job.getEscrowId());
                 log.info("Job {} submission timeout - Freelancer removed - TX: {}", job.getId(), txHash);
-                
+
                 job.setStatus(EJobStatus.OPEN);
                 job.setFreelancerWalletAddress(null);
                 job.clearDeadlines();
@@ -263,8 +265,10 @@ public class JobSchedulerService {
         JobApplication application = jobApplicationRepository
                 .findFirstByJobIdAndStatus(job.getId(), EApplicationStatus.ACCEPTED)
                 .orElse(null);
-        if (application == null || !application.isWorkSubmitted()) return;
-        if (application.getWorkStatus() == EWorkStatus.APPROVED) return;
+        if (application == null || !application.isWorkSubmitted())
+            return;
+        if (application.getWorkStatus() == EWorkStatus.APPROVED)
+            return;
 
         User freelancer = application.getFreelancer();
         User employer = job.getEmployer();
@@ -275,10 +279,10 @@ public class JobSchedulerService {
             try {
                 String txHash = blockchainService.signAutoApproveReviewTimeout(job.getEscrowId());
                 log.info("Job {} review timeout - Auto approved & paid - TX: {}", job.getId(), txHash);
-                
+
                 application.approveWork();
                 jobApplicationRepository.save(application);
-                
+
                 job.complete();
                 job.clearDeadlines();
                 job.setPaymentTxHash(txHash);
@@ -289,15 +293,16 @@ public class JobSchedulerService {
                 jobHistoryService.logHistory(job, freelancer, EJobHistoryAction.JOB_COMPLETED,
                         "Công việc hoàn thành. Thanh toán " + payment.toPlainString() + " " + job.getCurrency());
 
-                notificationService.notifyAutoApproved(freelancer, job, payment.toPlainString() + " " + job.getCurrency());
+                notificationService.notifyAutoApproved(freelancer, job,
+                        payment.toPlainString() + " " + job.getCurrency());
                 notificationService.notifyWorkReviewTimeout(employer, job);
                 notificationService.notifyJobCompleted(freelancer, job);
                 notificationService.notifyJobCompleted(employer, job);
-                
+
                 return;
             } catch (Exception e) {
                 log.error("Blockchain review timeout failed for job {}: {}", job.getId(), e.getMessage());
-                
+
                 job.setStatus(EJobStatus.REVIEW_TIMEOUT);
                 jobRepository.save(job);
 
@@ -309,7 +314,7 @@ public class JobSchedulerService {
                 return;
             }
         }
-        
+
         job.setStatus(EJobStatus.REVIEW_TIMEOUT);
         jobRepository.save(job);
 
