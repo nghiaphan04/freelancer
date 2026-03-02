@@ -9,4 +9,6 @@ public class ApplyJobRequest {
     
     @Size(max = 66, message = "Địa chỉ ví không hợp lệ")
     private String walletAddress;
+
+    private Long cvFileId;
 }

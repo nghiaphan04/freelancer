@@ -4,8 +4,10 @@ import com.workhub.api.dto.request.ApplyJobRequest;
 import com.workhub.api.dto.response.ApiResponse;
 import com.workhub.api.dto.response.JobApplicationResponse;
 import com.workhub.api.entity.*;
+import com.workhub.api.exception.FileUploadException;
 import com.workhub.api.exception.JobNotFoundException;
 import com.workhub.api.exception.UnauthorizedAccessException;
+import com.workhub.api.repository.FileUploadRepository;
 import com.workhub.api.repository.JobApplicationRepository;
 import com.workhub.api.repository.JobContractRepository;
 import com.workhub.api.repository.JobRepository;
@@ -32,6 +34,7 @@ public class JobApplicationService {
     private final JobHistoryService jobHistoryService;
     private final NotificationService notificationService;
     private final JobContractService jobContractService;
+    private final FileUploadRepository fileUploadRepository;
 
     @Transactional
     public ApiResponse<JobApplicationResponse> applyJob(Long jobId, Long userId, ApplyJobRequest req) {
@@ -61,6 +64,16 @@ public class JobApplicationService {
             throw new IllegalStateException("Bạn đã ứng tuyển vào công việc này rồi");
         }
 
+        // Handle CV file (required)
+        if (req.getCvFileId() == null) {
+            throw new IllegalStateException("Vui lòng đính kèm CV để ứng tuyển");
+        }
+        FileUpload cvFile = fileUploadRepository.findByIdAndIsDeletedFalse(req.getCvFileId())
+                .orElseThrow(() -> FileUploadException.fileNotFound());
+        if (!cvFile.isOwnedBy(userId)) {
+            throw FileUploadException.accessDenied();
+        }
+
         JobApplication saved;
         if (existingApplication != null && existingApplication.canReapply()) {
             existingApplication.reapply(req.getCoverLetter());
@@ -78,6 +91,12 @@ public class JobApplicationService {
 
             job.incrementApplicationCount();
             jobRepository.save(job);
+        }
+
+        // Assign CV file to application reference
+        if (cvFile != null) {
+            cvFile.assignToReference("APPLICATION_CV", saved.getId());
+            fileUploadRepository.save(cvFile);
         }
 
         jobHistoryService.logHistory(job, user, EJobHistoryAction.APPLICATION_SUBMITTED,
@@ -323,6 +342,17 @@ public class JobApplicationService {
                 .untrustScore(freelancer.getUntrustScore())
                 .build();
 
+        // Look up CV file by application reference
+        String cvFileUrl = null;
+        String cvFileName = null;
+        FileUpload cvFile = fileUploadRepository
+                .findByReferenceTypeAndReferenceIdAndIsDeletedFalseOrderByCreatedAtDesc("APPLICATION_CV", application.getId())
+                .stream().findFirst().orElse(null);
+        if (cvFile != null) {
+            cvFileUrl = cvFile.getSecureUrl();
+            cvFileName = cvFile.getOriginalFilename();
+        }
+
         return JobApplicationResponse.builder()
                 .id(application.getId())
                 .jobId(job.getId())
@@ -337,6 +367,8 @@ public class JobApplicationService {
                 .workSubmittedAt(application.getWorkSubmittedAt())
                 .workRevisionNote(application.getWorkRevisionNote())
                 .walletAddress(application.getWalletAddress())
+                .cvFileUrl(cvFileUrl)
+                .cvFileName(cvFileName)
                 .createdAt(application.getCreatedAt())
                 .updatedAt(application.getUpdatedAt())
                 .build();

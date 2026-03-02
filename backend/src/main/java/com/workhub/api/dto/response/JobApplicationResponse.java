@@ -24,6 +24,8 @@ public class JobApplicationResponse {
     private LocalDateTime workSubmittedAt;
     private String workRevisionNote;
     private String walletAddress;
+    private String cvFileUrl;
+    private String cvFileName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

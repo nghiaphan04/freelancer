@@ -12,6 +12,7 @@ import Icon from "@/components/ui/Icon";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import WalletAvatar from "@/components/ui/WalletAvatar";
+import { handleDownload } from "@/lib/download";
 import {
   Dialog,
   DialogContent,
@@ -37,18 +38,6 @@ const STATUS_OPTIONS: { value: ApplicationStatus | ""; label: string }[] = [
 ];
 
 export default function JobApplicationsTable() {
-  // Helper: append original file extension to Cloudinary raw URL so browser recognizes the file type
-  const getCvDownloadUrl = (cvFileUrl: string, cvFileName?: string) => {
-    if (!cvFileName) return cvFileUrl;
-    // Get extension from original filename (e.g. "pdf", "docx")
-    const ext = cvFileName.split('.').pop()?.toLowerCase();
-    if (!ext) return cvFileUrl;
-    // If URL already ends with an extension, skip
-    if (cvFileUrl.endsWith('.' + ext)) return cvFileUrl;
-    // Append extension to the URL path
-    return cvFileUrl + '.' + ext;
-  };
-
   const params = useParams();
   const router = useRouter();
   const jobId = Number(params.id);
@@ -408,15 +397,13 @@ export default function JobApplicationsTable() {
                               </button>
                             )}
                             {app.cvFileUrl && (
-                              <a
-                                href={getCvDownloadUrl(app.cvFileUrl, app.cvFileName)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-0.5 text-xs text-red-500 hover:underline"
+                              <button
+                                onClick={() => handleDownload(app.cvFileUrl!, app.cvFileName || "CV_UngVien.pdf")}
+                                className="inline-flex items-center gap-0.5 text-xs text-red-500 hover:underline cursor-pointer"
                               >
                                 <Icon name="picture_as_pdf" size={14} />
                                 Xem CV
-                              </a>
+                              </button>
                             )}
                           </div>
                         </div>
@@ -593,18 +580,16 @@ export default function JobApplicationsTable() {
             {/* CV Attachment */}
             {viewingApp?.cvFileUrl && (
               <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-                <a
-                  href={getCvDownloadUrl(viewingApp.cvFileUrl, viewingApp.cvFileName)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                <button
+                  onClick={() => handleDownload(viewingApp.cvFileUrl!, viewingApp.cvFileName || "CV_UngVien.pdf")}
+                  className="w-full inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left"
                 >
                   <Icon name="picture_as_pdf" size={20} className="text-red-500" />
                   <div>
                     <p className="text-sm font-medium text-gray-800">{viewingApp.cvFileName || "CV.pdf"}</p>
-                    <p className="text-xs text-gray-500">Nhấn để xem CV</p>
+                    <p className="text-xs text-gray-500">Nhấn để tải CV</p>
                   </div>
-                </a>
+                </button>
               </div>
             )}
           </div>

@@ -37,7 +37,7 @@ public class FileUploadService {
     @Value("${app.upload.allowed-image-extensions:jpg,jpeg,png,gif,webp}")
     private String allowedImageExtensions;
 
-    @Value("${app.upload.allowed-document-extensions:pdf}")
+    @Value("${app.upload.allowed-document-extensions:pdf,doc,docx}")
     private String allowedDocumentExtensions;
 
     @Transactional
@@ -209,6 +209,7 @@ public class FileUploadService {
             Number bytes = (Number) result.get("bytes");
             Number width = (Number) result.get("width");
             Number height = (Number) result.get("height");
+
 
             FileUpload fileUpload = FileUpload.builder()
                 .publicId(publicId)
