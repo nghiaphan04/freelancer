@@ -17,6 +17,7 @@ export interface Category {
   name: string;
   displayOrder: number;
   icon?: string;
+  jobCount?: number;  // Số lượng việc làm trong category
   popularTags?: string[];  // Derived from isPopular tags
   subCategories?: SubCategory[];
 }

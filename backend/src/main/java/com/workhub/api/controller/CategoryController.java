@@ -27,4 +27,9 @@ public class CategoryController {
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAllCategoriesWithDetails() {
         return ResponseEntity.ok(categoryService.getAllCategoriesWithDetails());
     }
+
+    @GetMapping("/with-job-counts")
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAllCategoriesWithJobCounts() {
+        return ResponseEntity.ok(categoryService.getAllCategoriesWithJobCounts());
+    }
 }

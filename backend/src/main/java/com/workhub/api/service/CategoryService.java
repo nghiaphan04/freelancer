@@ -2,15 +2,19 @@ package com.workhub.api.service;
 
 import com.workhub.api.dto.response.*;
 import com.workhub.api.entity.Category;
+import com.workhub.api.entity.EJobStatus;
 import com.workhub.api.entity.SubCategory;
 import com.workhub.api.entity.SubCategoryTag;
 import com.workhub.api.repository.CategoryRepository;
+import com.workhub.api.repository.JobRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -19,6 +23,7 @@ import java.util.stream.Collectors;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final JobRepository jobRepository;
 
     @Transactional(readOnly = true)
     public ApiResponse<List<CategoryResponse>> getAllCategories() {
@@ -38,12 +43,41 @@ public class CategoryService {
         return ApiResponse.success("Lấy danh sách danh mục chi tiết thành công", response);
     }
 
+    @Transactional(readOnly = true)
+    public ApiResponse<List<CategoryResponse>> getAllCategoriesWithJobCounts() {
+        List<Category> categories = categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc();
+        
+        // Get job counts for all categories in one query
+        List<EJobStatus> activeStatuses = Arrays.asList(EJobStatus.OPEN, EJobStatus.IN_PROGRESS);
+        Map<Long, Long> jobCountMap = jobRepository.countJobsByCategory(activeStatuses).stream()
+                .collect(Collectors.toMap(
+                        JobRepository.CategoryJobCount::getCategoryId,
+                        JobRepository.CategoryJobCount::getCount
+                ));
+        
+        List<CategoryResponse> response = categories.stream()
+                .map(c -> mapToCategoryResponseWithJobCount(c, jobCountMap.getOrDefault(c.getId(), 0L)))
+                .collect(Collectors.toList());
+        
+        return ApiResponse.success("Lấy danh sách danh mục với số lượng việc làm thành công", response);
+    }
+
     private CategoryResponse mapToCategoryResponse(Category category) {
         return CategoryResponse.builder()
                 .id(category.getId())
                 .name(category.getName())
                 .displayOrder(category.getDisplayOrder())
                 .icon(category.getIcon())
+                .build();
+    }
+
+    private CategoryResponse mapToCategoryResponseWithJobCount(Category category, Long jobCount) {
+        return CategoryResponse.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .displayOrder(category.getDisplayOrder())
+                .icon(category.getIcon())
+                .jobCount(jobCount)
                 .build();
     }
 

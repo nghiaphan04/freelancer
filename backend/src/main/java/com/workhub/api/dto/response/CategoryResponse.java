@@ -17,6 +17,7 @@ public class CategoryResponse {
     private String name;
     private Integer displayOrder;
     private String icon;
+    private Long jobCount;
     private List<String> popularTags;
     private List<SubCategoryResponse> subCategories;
 }

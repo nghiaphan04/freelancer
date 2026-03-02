@@ -123,6 +123,10 @@ public class Job {
     @JoinColumn(name = "employer_id", nullable = false)
     private User employer;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     @Column(name = "view_count", nullable = false)
     @Builder.Default
     private Integer viewCount = 0;
@@ -146,11 +150,11 @@ public class Job {
     private LocalDateTime updatedAt;
 
     public void update(String title, String description, String context,
-                       String requirements, String deliverables, Set<String> skills,
-                       EJobComplexity complexity, EJobDuration duration, EWorkType workType,
-                       BigDecimal budget, String currency,
-                       LocalDateTime applicationDeadline,
-                       Integer submissionDays, Integer reviewDays) {
+            String requirements, String deliverables, Set<String> skills,
+            EJobComplexity complexity, EJobDuration duration, EWorkType workType,
+            BigDecimal budget, String currency,
+            LocalDateTime applicationDeadline,
+            Integer submissionDays, Integer reviewDays) {
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
@@ -234,8 +238,8 @@ public class Job {
     }
 
     public boolean isExpired() {
-        return this.applicationDeadline != null 
-            && LocalDateTime.now().isAfter(this.applicationDeadline);
+        return this.applicationDeadline != null
+                && LocalDateTime.now().isAfter(this.applicationDeadline);
     }
 
     public void setStatus(EJobStatus status) {
@@ -264,13 +268,13 @@ public class Job {
     }
 
     public boolean isWorkSubmissionOverdue() {
-        return this.workSubmissionDeadline != null 
-            && LocalDateTime.now().isAfter(this.workSubmissionDeadline);
+        return this.workSubmissionDeadline != null
+                && LocalDateTime.now().isAfter(this.workSubmissionDeadline);
     }
 
     public boolean isWorkReviewOverdue() {
-        return this.workReviewDeadline != null 
-            && LocalDateTime.now().isAfter(this.workReviewDeadline);
+        return this.workReviewDeadline != null
+                && LocalDateTime.now().isAfter(this.workReviewDeadline);
     }
 
     public void dispute() {
@@ -361,7 +365,7 @@ public class Job {
     }
 
     public boolean hasPendingBlockchainAction() {
-        return this.pendingBlockchainAction != null 
-            && this.pendingBlockchainAction != EPendingBlockchainAction.NONE;
+        return this.pendingBlockchainAction != null
+                && this.pendingBlockchainAction != EPendingBlockchainAction.NONE;
     }
 }

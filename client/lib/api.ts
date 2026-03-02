@@ -1,5 +1,6 @@
 import { Category } from "@/types/category";
 import { Job, Page, CreateJobRequest, UpdateJobRequest, JobStatus, JobHistory } from "@/types/job";
+import { User } from "@/types/user";
 import { getAccessToken } from "@/constant/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -84,6 +85,11 @@ export const api = {
 
   // Roles
   becomeEmployer: () => request<User>("/api/users/me/become-employer", { method: "POST" }),
+
+  // Categories
+  getCategories: () => request<Category[]>("/api/categories"),
+  getCategoriesWithDetails: () => request<Category[]>("/api/categories/details"),
+  getCategoriesWithJobCounts: () => request<Category[]>("/api/categories/with-job-counts"),
 
   // Jobs
   // Tạo job mới (DRAFT)

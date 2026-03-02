@@ -22,24 +22,25 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     Page<Job> findByStatusOrderByCreatedAtDesc(EJobStatus status, Pageable pageable);
 
     @Query("SELECT j FROM Job j WHERE j.status = :status AND (j.applicationDeadline IS NULL OR j.applicationDeadline > :now)")
-    Page<Job> findByStatusAndNotExpired(@Param("status") EJobStatus status, @Param("now") java.time.LocalDateTime now, Pageable pageable);
+    Page<Job> findByStatusAndNotExpired(@Param("status") EJobStatus status, @Param("now") java.time.LocalDateTime now,
+            Pageable pageable);
 
     Page<Job> findByEmployerIdAndStatus(Long employerId, EJobStatus status, Pageable pageable);
 
     @Query("SELECT j FROM Job j WHERE j.status = :status AND " +
-           "(j.applicationDeadline IS NULL OR j.applicationDeadline > :now) AND " +
-           "(LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(j.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    Page<Job> searchJobs(@Param("keyword") String keyword, 
-                         @Param("status") EJobStatus status,
-                         @Param("now") java.time.LocalDateTime now,
-                         Pageable pageable);
+            "(j.applicationDeadline IS NULL OR j.applicationDeadline > :now) AND " +
+            "(LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(j.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Job> searchJobs(@Param("keyword") String keyword,
+            @Param("status") EJobStatus status,
+            @Param("now") java.time.LocalDateTime now,
+            Pageable pageable);
 
     @Query("SELECT DISTINCT j FROM Job j JOIN j.skills s WHERE s IN :skills AND j.status = :status AND (j.applicationDeadline IS NULL OR j.applicationDeadline > :now)")
-    Page<Job> findBySkillsAndStatus(@Param("skills") List<String> skills, 
-                                     @Param("status") EJobStatus status,
-                                     @Param("now") java.time.LocalDateTime now,
-                                     Pageable pageable);
+    Page<Job> findBySkillsAndStatus(@Param("skills") List<String> skills,
+            @Param("status") EJobStatus status,
+            @Param("now") java.time.LocalDateTime now,
+            Pageable pageable);
 
     long countByEmployerId(Long employerId);
 
@@ -61,24 +62,29 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     // Timeout queries for scheduler
     @Query("SELECT j FROM Job j WHERE j.status = :status AND j.applicationDeadline IS NOT NULL AND j.applicationDeadline < :deadline")
-    List<Job> findByStatusAndApplicationDeadlineBefore(@Param("status") EJobStatus status, @Param("deadline") java.time.LocalDateTime deadline);
+    List<Job> findByStatusAndApplicationDeadlineBefore(@Param("status") EJobStatus status,
+            @Param("deadline") java.time.LocalDateTime deadline);
 
     @Query("SELECT j FROM Job j WHERE j.status = :status AND j.workSubmissionDeadline IS NOT NULL AND j.workSubmissionDeadline < :deadline")
-    List<Job> findByStatusAndWorkSubmissionDeadlineBefore(@Param("status") EJobStatus status, @Param("deadline") java.time.LocalDateTime deadline);
+    List<Job> findByStatusAndWorkSubmissionDeadlineBefore(@Param("status") EJobStatus status,
+            @Param("deadline") java.time.LocalDateTime deadline);
 
     @Query("SELECT j FROM Job j WHERE j.status = :status AND j.workReviewDeadline IS NOT NULL AND j.workReviewDeadline < :deadline")
-    List<Job> findByStatusAndWorkReviewDeadlineBefore(@Param("status") EJobStatus status, @Param("deadline") java.time.LocalDateTime deadline);
+    List<Job> findByStatusAndWorkReviewDeadlineBefore(@Param("status") EJobStatus status,
+            @Param("deadline") java.time.LocalDateTime deadline);
 
     // Freelancer's working jobs (jobs where freelancer has ACCEPTED application)
     @Query("SELECT j FROM Job j WHERE EXISTS (SELECT a FROM JobApplication a WHERE a.job = j AND a.freelancer.id = :freelancerId AND a.status = 'ACCEPTED')")
     Page<Job> findByAcceptedFreelancerId(@Param("freelancerId") Long freelancerId, Pageable pageable);
 
     @Query("SELECT j FROM Job j WHERE j.status = :status AND EXISTS (SELECT a FROM JobApplication a WHERE a.job = j AND a.freelancer.id = :freelancerId AND a.status = 'ACCEPTED')")
-    Page<Job> findByStatusAndAcceptedFreelancerId(@Param("status") EJobStatus status, @Param("freelancerId") Long freelancerId, Pageable pageable);
+    Page<Job> findByStatusAndAcceptedFreelancerId(@Param("status") EJobStatus status,
+            @Param("freelancerId") Long freelancerId, Pageable pageable);
 
     // Count freelancer's jobs by status
     @Query("SELECT COUNT(j) FROM Job j WHERE j.status = :status AND EXISTS (SELECT a FROM JobApplication a WHERE a.job = j AND a.freelancer.id = :freelancerId AND a.status = 'ACCEPTED')")
-    long countByStatusAndAcceptedFreelancerId(@Param("status") EJobStatus status, @Param("freelancerId") Long freelancerId);
+    long countByStatusAndAcceptedFreelancerId(@Param("status") EJobStatus status,
+            @Param("freelancerId") Long freelancerId);
 
     // Sum earnings for completed jobs
     @Query("SELECT COALESCE(SUM(j.budget), 0) FROM Job j WHERE j.status = 'COMPLETED' AND EXISTS (SELECT a FROM JobApplication a WHERE a.job = j AND a.freelancer.id = :freelancerId AND a.status = 'ACCEPTED')")
@@ -88,7 +94,22 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     Page<Job> findByPendingBlockchainActionNot(EPendingBlockchainAction action, Pageable pageable);
 
     @Query("SELECT j FROM Job j WHERE j.status = :status AND j.acceptedAt IS NOT NULL AND j.acceptedAt < :deadline")
-    List<Job> findByStatusAndAcceptedAtBefore(@Param("status") EJobStatus status, @Param("deadline") java.time.LocalDateTime deadline);
+    List<Job> findByStatusAndAcceptedAtBefore(@Param("status") EJobStatus status,
+            @Param("deadline") java.time.LocalDateTime deadline);
 
     List<Job> findByPendingBlockchainAction(EPendingBlockchainAction action);
+
+    // Count jobs by category
+    @Query("SELECT COUNT(j) FROM Job j WHERE j.category.id = :categoryId AND j.status IN :statuses")
+    long countByCategoryIdAndStatuses(@Param("categoryId") Long categoryId,
+            @Param("statuses") List<EJobStatus> statuses);
+
+    @Query("SELECT j.category.id as categoryId, COUNT(j) as count FROM Job j WHERE j.status IN :statuses GROUP BY j.category.id")
+    List<CategoryJobCount> countJobsByCategory(@Param("statuses") List<EJobStatus> statuses);
+
+    interface CategoryJobCount {
+        Long getCategoryId();
+
+        Long getCount();
+    }
 }
