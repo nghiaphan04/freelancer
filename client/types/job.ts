@@ -136,6 +136,21 @@ export interface UpdateJobRequest {
   contractHash?: string;
 }
 
+export interface JobSearchRequest {
+  keyword?: string;           // Tìm trong title, description
+  company?: string;           // Tên công ty
+  location?: string;          // Địa điểm
+  skills?: string[];        // Tags/kỹ năng
+  workType?: WorkType;      // PART_TIME, FULL_TIME
+  complexity?: JobComplexity; // ENTRY, INTERMEDIATE, EXPERT
+  minBudget?: number;       // Budget tối thiểu
+  maxBudget?: number;       // Budget tối đa
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+}
+
 // Paginated response
 export interface Page<T> {
   content: T[];

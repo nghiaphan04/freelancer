@@ -1,6 +1,7 @@
 package com.workhub.api.service;
 
 import com.workhub.api.dto.request.CreateJobRequest;
+import com.workhub.api.dto.request.JobSearchRequest;
 import com.workhub.api.dto.request.RepostJobRequest;
 import com.workhub.api.dto.request.UpdateJobRequest;
 import com.workhub.api.dto.response.ApiResponse;
@@ -133,8 +134,58 @@ public class JobService {
         return ApiResponse.success("Thành công", response);
     }
 
-    public ApiResponse<Page<JobResponse>> getMyJobs(Long employerId, EJobStatus status,
-            int page, int size, String sortBy, String sortDir) {
+    @Transactional(readOnly = true)
+    public ApiResponse<Page<JobResponse>> searchJobs(JobSearchRequest request) {
+        Sort sort = request.getSortDir().equalsIgnoreCase("desc")
+                ? Sort.by(request.getSortBy()).descending()
+                : Sort.by(request.getSortBy()).ascending();
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+
+        // Convert request params
+        Set<String> skills = request.getSkills();
+        if (skills != null && skills.isEmpty())
+            skills = null;
+
+        EWorkType workType = null;
+        if (request.getWorkType() != null) {
+            workType = EWorkType.valueOf(request.getWorkType());
+        }
+
+        EJobComplexity complexity = null;
+        if (request.getComplexity() != null) {
+            complexity = EJobComplexity.valueOf(request.getComplexity());
+        }
+
+        BigDecimal minBudget = request.getMinBudget() != null
+                ? BigDecimal.valueOf(request.getMinBudget())
+                : null;
+        BigDecimal maxBudget = request.getMaxBudget() != null
+                ? BigDecimal.valueOf(request.getMaxBudget())
+                : null;
+
+        List<EJobStatus> activeStatuses = Arrays.asList(EJobStatus.OPEN, EJobStatus.IN_PROGRESS);
+
+        Page<Job> jobs = jobRepository.advancedSearch(
+                request.getKeyword(),
+                request.getCompany(),
+                request.getLocation(),
+                skills,
+                workType,
+                complexity,
+                minBudget,
+                maxBudget,
+                activeStatuses,
+                LocalDateTime.now(),
+                pageable);
+
+        Page<JobResponse> response = jobs.map(this::buildJobResponse);
+        return ApiResponse.success("Tìm kiếm thành công", response);
+    }
+
+    int page,
+    int size, String sortBy,
+    String sortDir)
+    {
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();

@@ -135,11 +135,34 @@ export const api = {
   getMyWorkingJobsStats: () =>
     request<{ inProgress: number; completed: number; disputed: number; totalEarnings: number }>("/api/jobs/my-working-jobs/stats"),
 
-  // Tìm kiếm jobs
-  searchJobs: (params: { keyword: string; page?: number; size?: number }) => {
-    const query = new URLSearchParams({ keyword: params.keyword });
+  // Tìm kiếm jobs nâng cao
+  searchJobs: (params: {
+    keyword?: string;
+    company?: string;
+    location?: string;
+    skills?: string[];
+    workType?: string;
+    complexity?: string;
+    minBudget?: number;
+    maxBudget?: number;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: "asc" | "desc";
+  }) => {
+    const query = new URLSearchParams();
+    if (params.keyword) query.append("keyword", params.keyword);
+    if (params.company) query.append("company", params.company);
+    if (params.location) query.append("location", params.location);
+    if (params.skills) params.skills.forEach((skill) => query.append("skills", skill));
+    if (params.workType) query.append("workType", params.workType);
+    if (params.complexity) query.append("complexity", params.complexity);
+    if (params.minBudget !== undefined) query.append("minBudget", params.minBudget.toString());
+    if (params.maxBudget !== undefined) query.append("maxBudget", params.maxBudget.toString());
     if (params.page !== undefined) query.append("page", params.page.toString());
     if (params.size !== undefined) query.append("size", params.size.toString());
+    if (params.sortBy) query.append("sortBy", params.sortBy);
+    if (params.sortDir) query.append("sortDir", params.sortDir);
     return request<Page<Job>>(`/api/jobs/search?${query}`);
   },
 

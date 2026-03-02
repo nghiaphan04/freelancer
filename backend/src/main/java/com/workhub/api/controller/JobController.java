@@ -3,6 +3,7 @@ package com.workhub.api.controller;
 import com.workhub.api.dto.request.ApplyJobRequest;
 import com.workhub.api.dto.request.CreateJobContractRequest;
 import com.workhub.api.dto.request.CreateJobRequest;
+import com.workhub.api.dto.request.JobSearchRequest;
 import com.workhub.api.dto.request.RepostJobRequest;
 import com.workhub.api.dto.request.RevisionRequest;
 import com.workhub.api.dto.request.SubmitWorkRequest;
@@ -91,7 +92,8 @@ public class JobController {
             @RequestParam(defaultValue = "updatedAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
 
-        return ResponseEntity.ok(jobService.getFreelancerWorkingJobs(userDetails.getId(), status, page, size, sortBy, sortDir));
+        return ResponseEntity
+                .ok(jobService.getFreelancerWorkingJobs(userDetails.getId(), status, page, size, sortBy, sortDir));
     }
 
     @GetMapping("/my-working-jobs/stats")
@@ -102,12 +104,8 @@ public class JobController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<JobResponse>>> searchJobs(
-            @RequestParam String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        return ResponseEntity.ok(jobService.searchJobs(keyword, page, size));
+    public ResponseEntity<ApiResponse<Page<JobResponse>>> searchJobs(@Valid JobSearchRequest request) {
+        return ResponseEntity.ok(jobService.searchJobs(request));
     }
 
     @GetMapping("/by-skills")
@@ -242,7 +240,8 @@ public class JobController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody List<Long> applicationIds) {
 
-        return ResponseEntity.ok(jobApplicationService.batchRejectApplications(id, applicationIds, userDetails.getId()));
+        return ResponseEntity
+                .ok(jobApplicationService.batchRejectApplications(id, applicationIds, userDetails.getId()));
     }
 
     @GetMapping("/{id}/history")

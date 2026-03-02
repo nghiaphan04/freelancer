@@ -58,6 +58,9 @@ public class Job {
     @Builder.Default
     private EWorkType workType = EWorkType.PART_TIME;
 
+    @Column(length = 200)
+    private String location;
+
     @Column(precision = 15, scale = 2)
     private BigDecimal budget;
 
