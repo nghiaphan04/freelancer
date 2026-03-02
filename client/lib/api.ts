@@ -11,7 +11,7 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+async function request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
   const token = getAccessToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -39,8 +39,8 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     throw new Error(json.message || 'API request failed');
   }
   
-  // Return the actual data from ApiResponse wrapper
-  return json.data;
+  // Return the full ApiResponse wrapper
+  return json;
 }
 
 export const api = {
@@ -91,6 +91,7 @@ export const api = {
   getCategories: () => request<Category[]>("/api/categories"),
   getCategoriesWithDetails: () => request<Category[]>("/api/categories/details"),
   getCategoriesWithJobCounts: () => request<Category[]>("/api/categories/with-job-counts"),
+  getCategoriesWithDetailsAndJobCounts: () => request<Category[]>("/api/categories/details-with-job-counts"),
 
   // Jobs
   // Tạo job mới (DRAFT)

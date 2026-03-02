@@ -76,6 +76,7 @@ function LocationPicker({
     <div className={cn("relative", className)} ref={dropdownRef}>
       {/* Mobile Button */}
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="flex sm:hidden items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors"
       >
@@ -84,6 +85,7 @@ function LocationPicker({
 
       {/* Desktop Button */}
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="hidden sm:flex items-center border-l border-gray-200 px-4 py-2 hover:bg-gray-50 transition-colors"
       >
@@ -99,7 +101,7 @@ function LocationPicker({
           <div className="sm:hidden fixed inset-x-4 top-20 bottom-20 bg-white rounded-xl shadow-2xl z-[9999] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="font-semibold text-gray-800">Chọn địa điểm</h3>
-              <button onClick={() => setOpen(false)} className="p-1 hover:bg-gray-100 rounded-full">
+              <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-gray-100 rounded-full">
                 <Icon name="close" size={20} className="text-gray-500" />
               </button>
             </div>
@@ -141,6 +143,7 @@ function LocationPicker({
             </div>
             <div className="p-4 border-t border-gray-200">
               <button
+                type="button"
                 onClick={() => setOpen(false)}
                 className="w-full py-3 bg-[#00b14f] text-white rounded-full font-medium hover:bg-[#009643] transition-colors"
               >

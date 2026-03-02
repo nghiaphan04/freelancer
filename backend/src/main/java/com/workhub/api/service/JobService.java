@@ -5,6 +5,8 @@ import com.workhub.api.dto.request.JobSearchRequest;
 import com.workhub.api.dto.request.RepostJobRequest;
 import com.workhub.api.dto.request.UpdateJobRequest;
 import com.workhub.api.dto.response.ApiResponse;
+import com.workhub.api.dto.response.CategoryResponse;
+import com.workhub.api.dto.response.SubCategoryResponse;
 import com.workhub.api.dto.response.JobResponse;
 import com.workhub.api.entity.*;
 import com.workhub.api.exception.JobNotFoundException;
@@ -158,6 +160,10 @@ public class JobService {
                 pageable);
         Page<JobResponse> response = jobs.map(this::buildJobResponse);
 
+        if (response.isEmpty()) {
+            return ApiResponse.success("Không có việc làm nào phù hợp", response);
+        }
+
         return ApiResponse.success("Thành công", response);
     }
 
@@ -194,6 +200,7 @@ public class JobService {
 
         Page<Job> jobs = jobRepository.advancedSearch(
                 request.getKeyword(),
+                request.getCategoryId(),
                 request.getCompany(),
                 request.getLocation(),
                 skills,
@@ -206,6 +213,11 @@ public class JobService {
                 pageable);
 
         Page<JobResponse> response = jobs.map(this::buildJobResponse);
+
+        if (response.isEmpty()) {
+            return ApiResponse.success("Không tìm thấy công việc nào", response);
+        }
+
         return ApiResponse.success("Tìm kiếm thành công", response);
     }
 
@@ -226,6 +238,11 @@ public class JobService {
         }
 
         Page<JobResponse> response = jobs.map(this::buildJobResponse);
+
+        if (response.isEmpty()) {
+            return ApiResponse.success("Bạn chưa có việc làm nào", response);
+        }
+
         return ApiResponse.success("Thành công", response);
     }
 
@@ -244,6 +261,11 @@ public class JobService {
         }
 
         Page<JobResponse> response = jobs.map(job -> buildJobResponseWithWorkInfo(job, freelancerId));
+
+        if (response.isEmpty()) {
+            return ApiResponse.success("Bạn chưa có việc làm nào đang thực hiện", response);
+        }
+
         return ApiResponse.success("Thành công", response);
     }
 
@@ -264,6 +286,11 @@ public class JobService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Job> jobs = jobRepository.searchJobs(keyword, EJobStatus.OPEN, java.time.LocalDateTime.now(), pageable);
         Page<JobResponse> response = jobs.map(this::buildJobResponse);
+
+        if (response.isEmpty()) {
+            return ApiResponse.success("Không tìm thấy công việc nào phù hợp", response);
+        }
+
         return ApiResponse.success("Thành công", response);
     }
 
@@ -272,6 +299,11 @@ public class JobService {
         Page<Job> jobs = jobRepository.findBySkillsAndStatus(skills, EJobStatus.OPEN, java.time.LocalDateTime.now(),
                 pageable);
         Page<JobResponse> response = jobs.map(this::buildJobResponse);
+
+        if (response.isEmpty()) {
+            return ApiResponse.success("Không có việc làm nào với kỹ năng này", response);
+        }
+
         return ApiResponse.success("Thành công", response);
     }
 
@@ -664,9 +696,19 @@ public class JobService {
                 .requirements(job.getRequirements())
                 .deliverables(job.getDeliverables())
                 .skills(job.getSkills())
+                .tags(job.getSkills()) // Tags are currently same as skills
                 .complexity(job.getComplexity())
                 .duration(job.getDuration())
                 .workType(job.getWorkType())
+                .location(job.getLocation())
+                .category(job.getCategory() != null ? CategoryResponse.builder()
+                        .id(job.getCategory().getId())
+                        .name(job.getCategory().getName())
+                        .build() : null)
+                .subCategory(job.getSubCategory() != null ? SubCategoryResponse.builder()
+                        .id(job.getSubCategory().getId())
+                        .name(job.getSubCategory().getName())
+                        .build() : null)
                 .budget(job.getBudget())
                 .escrowAmount(job.getEscrowAmount())
                 .currency(job.getCurrency())

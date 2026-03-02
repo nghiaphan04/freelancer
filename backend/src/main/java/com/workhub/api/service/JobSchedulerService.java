@@ -97,6 +97,10 @@ public class JobSchedulerService {
         User employer = job.getEmployer();
         String employerName = employer.getFullName();
 
+        LocalDateTime now = LocalDateTime.now();
+        log.info("Job {} - deadline: {}, now: {}, escrowId: {}",
+                job.getId(), job.getApplicationDeadline(), now, job.getEscrowId());
+
         if (job.getEscrowId() != null && blockchainService.isInitialized()) {
             try {
                 String txHash = blockchainService.signRefundExpiredJob(job.getEscrowId());

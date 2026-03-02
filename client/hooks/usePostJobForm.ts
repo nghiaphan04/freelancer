@@ -20,6 +20,12 @@ export interface FormData {
   submissionUnit: TimeUnit;
   reviewValue: number;
   reviewUnit: TimeUnit;
+  // New fields
+  location: string;
+  workType: "FULL_TIME" | "PART_TIME" | "";
+  category: string;
+  subCategory: string;
+  tags: string[];
 }
 
 function toMinutes(value: number, unit: TimeUnit): number {
@@ -70,6 +76,12 @@ export function usePostJobForm(onSuccess?: () => void) {
     submissionUnit: "days",
     reviewValue: 3,
     reviewUnit: "days",
+    // New fields
+    location: "Hà Nội, Quận Cầu Giấy",
+    workType: "FULL_TIME",
+    category: "",
+    subCategory: "",
+    tags: [],
   }));
 
   const escrowAmount = formData.budget * (1 + PLATFORM_FEE_PERCENT / 100);
@@ -111,6 +123,23 @@ export function usePostJobForm(onSuccess?: () => void) {
       toast.error("Thời gian nghiệm thu tối thiểu 1");
       return false;
     }
+    // New field validations
+    if (!formData.location.trim()) {
+      toast.error("Vui lòng nhập địa điểm công việc");
+      return false;
+    }
+    if (!formData.workType) {
+      toast.error("Vui lòng chọn loại hình công việc");
+      return false;
+    }
+    if (!formData.category) {
+      toast.error("Vui lòng chọn danh mục công việc");
+      return false;
+    }
+    if (!formData.subCategory) {
+      toast.error("Vui lòng chọn tiểu mục công việc");
+      return false;
+    }
     return true;
   };
 
@@ -147,8 +176,8 @@ export function usePostJobForm(onSuccess?: () => void) {
         ? new Date(Date.now() + deadlineMinutes * 60 * 1000)
         : undefined;
       const applicationDeadline = deadlineDate ? formatLocalDateTime(deadlineDate) : undefined;
-      const submissionDays = toMinutes(formData.submissionValue, formData.submissionUnit);
-      const reviewDays = toMinutes(formData.reviewValue, formData.reviewUnit);
+      const submissionDays = formData.submissionUnit === "days" ? formData.submissionValue : Math.ceil(formData.submissionValue / (24 * 60));
+      const reviewDays = formData.reviewUnit === "days" ? formData.reviewValue : Math.ceil(formData.reviewValue / (24 * 60));
       
       const response = await api.createJob({
         title: formData.title,
@@ -162,10 +191,14 @@ export function usePostJobForm(onSuccess?: () => void) {
         applicationDeadline,
         submissionDays,
         reviewDays,
+        location: formData.location,
+        categoryId: formData.category ? Number(formData.category) : undefined,
+        subCategoryId: formData.subCategory ? Number(formData.subCategory) : undefined,
+        tags: formData.tags,
         saveAsDraft: true,
       });
 
-      if (response.status === "SUCCESS" && response.data) {
+      if (response.status === "SUCCESS" && response.data?.id) {
         const validTerms = contractTerms.filter(t => t.title.trim() || t.content.trim());
         const contractData = {
           budget: formData.budget || 0,
@@ -182,8 +215,9 @@ export function usePostJobForm(onSuccess?: () => void) {
       } else {
         toast.error(response.message || "Không thể lưu bản nháp");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Đã có lỗi xảy ra");
+    } catch (error) {
+      const err = error as Error;
+      toast.error(err.message || "Đã có lỗi xảy ra");
     } finally {
       setIsSubmitting(false);
     }
@@ -248,39 +282,45 @@ export function usePostJobForm(onSuccess?: () => void) {
           budget: formData.budget,
           currency: formData.currency,
           applicationDeadline,
-          submissionDays: submissionMinutes,
-          reviewDays: reviewMinutes,
+          submissionDays: formData.submissionUnit === "days" ? formData.submissionValue : Math.ceil(formData.submissionValue / (24 * 60)),
+          reviewDays: formData.reviewUnit === "days" ? formData.reviewValue : Math.ceil(formData.reviewValue / (24 * 60)),
+          location: formData.location,
+          categoryId: formData.category ? Number(formData.category) : undefined,
+          subCategoryId: formData.subCategory ? Number(formData.subCategory) : undefined,
+          tags: formData.tags,
           escrowId,
           walletAddress: address,
           txHash,
         });
 
-        if (response.status === "SUCCESS" && response.data) {
+        if (response.status === "SUCCESS" && response.data?.id) {
           await api.createJobContract(response.data.id, { ...contractData, contractHash });
           toast.success("Tạo công việc thành công!");
           onSuccess?.();
         } else {
           throw new Error(response.message || "Không thể lưu công việc");
         }
-      } catch (dbError: any) {
-        toast.error("Lưu DB thất bại, đang hoàn tiền...");
-        try {
-          await api.cancelEscrow(escrowId);
-          toast.info("Đã hoàn tiền escrow");
-        } catch (refundError) {
-          toast.error("Không thể hoàn tiền tự động. Escrow ID: " + escrowId);
+        } catch (dbError) {
+          const err = dbError as Error;
+          toast.error("Lưu DB thất bại, đang hoàn tiền...");
+          try {
+            await api.cancelEscrow(escrowId);
+            toast.info("Đã hoàn tiền escrow");
+          } catch {
+            toast.error("Không thể hoàn tiền tự động. Escrow ID: " + escrowId);
+          }
+          throw err;
         }
-        throw dbError;
-      }
-    } catch (error: any) {
-      console.error("Error creating job:", error);
-      if (error.message?.includes("User rejected")) {
-        toast.error("Bạn đã hủy thao tác");
-      } else {
-        toast.error(error.message || "Đã có lỗi xảy ra");
-      }
-      setStep("form");
-    } finally {
+      } catch (error) {
+        const err = error as Error;
+        console.error("Error creating job:", err);
+        if (err.message?.includes("User rejected")) {
+          toast.error("Bạn đã hủy thao tác");
+        } else {
+          toast.error(err.message || "Đã có lỗi xảy ra");
+        }
+        setStep("form");
+      } finally {
       setIsSubmitting(false);
     }
   };

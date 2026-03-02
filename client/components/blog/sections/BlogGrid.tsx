@@ -41,13 +41,7 @@ export default function BlogGrid() {
             ))}
           </div>
 
-          <Link 
-            href="/blog" 
-            className="flex items-center justify-center gap-2 w-full py-3 mt-8 border-2 border-[#00b14f] text-[#00b14f] rounded-lg hover:bg-[#00b14f] hover:text-white transition-colors font-medium"
-          >
-            Xem thêm bài viết
-            <Icon name="arrow_forward" size={20} />
-          </Link>
+
         </div>
       </div>
 

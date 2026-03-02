@@ -52,6 +52,27 @@ export default function PostJobForm() {
     removeSkill,
   } = useSkills(formData, setFormData);
 
+  // Handlers for new fields
+  const handleLocationChange = (value: string) => {
+    setFormData(prev => ({ ...prev, location: value }));
+  };
+
+  const handleWorkTypeChange = (value: string) => {
+    setFormData(prev => ({ ...prev, workType: value as "FULL_TIME" | "PART_TIME" | "" }));
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setFormData(prev => ({ ...prev, category: value, subCategory: "", tags: [] }));
+  };
+
+  const handleSubCategoryChange = (value: string) => {
+    setFormData(prev => ({ ...prev, subCategory: value, tags: [] }));
+  };
+
+  const handleTagsChange = (tags: string[]) => {
+    setFormData(prev => ({ ...prev, tags }));
+  };
+
   if (step === "confirm" || step === "processing") {
     return (
       <ConfirmStep
@@ -95,6 +116,11 @@ export default function PostJobForm() {
           <BasicInfoSection
             formData={formData}
             onChange={handleChange}
+            onLocationChange={handleLocationChange}
+            onWorkTypeChange={handleWorkTypeChange}
+            onCategoryChange={handleCategoryChange}
+            onSubCategoryChange={handleSubCategoryChange}
+            onTagsChange={handleTagsChange}
             disabled={isSubmitting}
           />
 

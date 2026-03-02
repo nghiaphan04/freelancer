@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { Job } from "@/types/job";
 import Icon from "@/components/ui/Icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const BADGE_IMAGES = ["/1-sao.png", "/2-sao.png", "/3-sao.png"];
+import { formatAdvancedDeadline } from "@/utils/dateFormat";
 
 interface JobCardWithPreviewProps {
   job: Job;
@@ -15,7 +14,6 @@ interface JobCardWithPreviewProps {
 }
 
 export default function JobCardWithPreview({ job, onFavorite, isFavorite = false }: JobCardWithPreviewProps) {
-  const badgeImage = useMemo(() => BADGE_IMAGES[job.id % BADGE_IMAGES.length], [job.id]);
   const [showPreview, setShowPreview] = useState(false);
   const [previewPosition, setPreviewPosition] = useState<"right" | "left">("right");
   const cardRef = useRef<HTMLDivElement>(null);
@@ -29,26 +27,14 @@ export default function JobCardWithPreview({ job, onFavorite, isFavorite = false
     return new Intl.NumberFormat("vi-VN").format(budget);
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return "Đã hết hạn";
-    if (diffDays === 0) return "Hôm nay";
-    return `Còn ${diffDays} ngày`;
-  };
-
-  useEffect(() => {
-    if (showPreview && cardRef.current) {
-      const rect = cardRef.current.getBoundingClientRect();
-      const spaceOnRight = window.innerWidth - rect.right;
-      setPreviewPosition(spaceOnRight < 420 ? "left" : "right");
-    }
-  }, [showPreview]);
-
   const handleMouseEnter = () => {
     timeoutRef.current = setTimeout(() => {
+      // Calculate position immediately when showing preview
+      if (cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect();
+        const spaceOnRight = window.innerWidth - rect.right;
+        setPreviewPosition(spaceOnRight < 420 ? "left" : "right");
+      }
       setShowPreview(true);
     }, 300);
   };
@@ -68,23 +54,25 @@ export default function JobCardWithPreview({ job, onFavorite, isFavorite = false
       onMouseLeave={handleMouseLeave}
     >
       {/* Main Card */}
-      <div className={`bg-white rounded-xl border p-4 transition-all duration-200 ${
+      <div className={`bg-white rounded-xl border p-3 sm:p-4 transition-all duration-200 ${
         showPreview ? "border-[#00b14f] shadow-lg" : "border-gray-200 hover:shadow-lg hover:border-[#00b14f]/30"
       }`}>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           {/* Company Logo */}
-          <Link href={`/jobs/${job.id}`} className="shrink-0">
-            <Avatar className="w-14 h-14 rounded-lg border border-gray-100">
-              <AvatarImage 
-                src={badgeImage} 
-                alt={job.employer.company || job.employer.fullName} 
-                className="object-cover"
-              />
-              <AvatarFallback className="rounded-lg bg-[#00b14f] text-white text-lg font-semibold">
-                {(job.employer.company || job.employer.fullName)?.charAt(0)?.toUpperCase() || "C"}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
+          <div className="shrink-0">
+            <Link href={`/jobs/${job.id}`}>
+              <Avatar className="w-24 h-16 sm:w-32 sm:h-20 md:w-40 md:h-24 lg:w-52 lg:h-32 rounded-lg border border-gray-100">
+                <AvatarImage 
+                  src={job.employer.avatarUrl || ""} 
+                  alt={job.employer.company || job.employer.fullName} 
+                  className="object-cover"
+                />
+                <AvatarFallback className="rounded-lg bg-[#00b14f] text-white text-lg sm:text-xl font-semibold">
+                  {(job.employer.company || job.employer.fullName)?.charAt(0)?.toUpperCase() || "C"}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+          </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
@@ -100,7 +88,7 @@ export default function JobCardWithPreview({ job, onFavorite, isFavorite = false
 
             {/* Job Title */}
             <Link href={`/jobs/${job.id}`}>
-              <h3 className={`font-semibold transition-colors line-clamp-2 mb-1 text-[15px] leading-snug ${
+              <h3 className={`font-semibold transition-colors line-clamp-2 mb-1 text-sm sm:text-[15px] leading-snug ${
                 showPreview ? "text-[#00b14f]" : "text-gray-900 hover:text-[#00b14f]"
               }`}>
                 {job.title}
@@ -108,18 +96,35 @@ export default function JobCardWithPreview({ job, onFavorite, isFavorite = false
             </Link>
 
             {/* Company Name */}
-            <p className="text-sm text-gray-500 truncate mb-2.5">
+            <p className="text-xs sm:text-sm text-gray-500 truncate mb-1">
               {job.employer.company || job.employer.fullName}
             </p>
+
+            {/* Job Description - 2 lines */}
+            <div className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-2 sm:mb-2.5">
+              {job.description}
+            </div>
 
             {/* Tags */}
             <div className="flex items-center flex-wrap gap-2">
               <span className="inline-flex items-center px-2.5 py-1 bg-[#e8f5e9] text-[#00875a] text-xs font-medium rounded-md">
                 {formatBudget(job.budget)}
               </span>
-              <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">
-                {job.employer.location || "Remote"}
-              </span>
+              {job.workType && (
+                <span className="inline-flex items-center px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-md">
+                  {job.workType === "FULL_TIME" ? "Toàn thời gian" : "Bán thời gian"}
+                </span>
+              )}
+              {(job.location || job.employer?.location) && (job.location || job.employer?.location) !== "Remote" && (
+                <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">
+                  {job.location || job.employer?.location}
+                </span>
+              )}
+              {job.tags && job.tags.length > 0 && job.tags.slice(0, 2).map((tag, idx) => (
+                <span key={idx} className="inline-flex items-center px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-md">
+                  {tag}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -150,8 +155,8 @@ export default function JobCardWithPreview({ job, onFavorite, isFavorite = false
           {/* Header */}
           <div className="p-4 border-b border-gray-100">
             <div className="flex gap-3">
-              <Avatar className="w-12 h-12 rounded-lg border border-gray-100 shrink-0">
-                <AvatarImage src={badgeImage} alt={job.employer.company || job.employer.fullName} />
+              <Avatar className="w-24 h-20 rounded-lg border border-gray-100 shrink-0">
+                <AvatarImage src={job.employer.avatarUrl || ""} alt={job.employer.company || job.employer.fullName} />
                 <AvatarFallback className="rounded-lg bg-[#00b14f] text-white font-semibold">
                   {(job.employer.company || job.employer.fullName)?.charAt(0)?.toUpperCase() || "C"}
                 </AvatarFallback>
@@ -175,7 +180,7 @@ export default function JobCardWithPreview({ job, onFavorite, isFavorite = false
               {job.applicationDeadline && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
                   <Icon name="schedule" size={14} />
-                  {formatDate(job.applicationDeadline)}
+                  {formatAdvancedDeadline(job.applicationDeadline)}
                 </span>
               )}
             </div>

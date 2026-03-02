@@ -7,6 +7,7 @@ import { api, JobApplication } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/WalletContext";
 import { Job } from "@/types/job";
+import { formatAdvancedDeadline, formatRelativeTime, formatSubmissionDeadline, formatReviewDeadline, formatFullDateTime } from "@/utils/dateFormat";
 import Icon from "@/components/ui/Icon";
 import JobDetailHeader from "./JobDetailHeader";
 import JobDetailContent from "./JobDetailContent";
@@ -38,13 +39,16 @@ export default function JobDetail() {
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await api.getJobById(jobId);
-        if (res.status === "SUCCESS" && res.data) {
-          setJob(res.data);
+        console.log('Fetching job with ID:', jobId);
+        const response = await api.getJobById(jobId);
+        console.log('Job API response:', response);
+        if (response.status === "SUCCESS" && response.data) {
+          setJob(response.data);
         } else {
-          setError(res.message || "Không tìm thấy công việc");
+          setError(response.message || "Không tìm thấy công việc");
         }
-      } catch {
+      } catch (err) {
+        console.error('Job fetch error:', err);
         setError("Đã có lỗi xảy ra");
       } finally {
         setIsLoading(false);
@@ -53,11 +57,12 @@ export default function JobDetail() {
 
     const fetchMyApplication = async () => {
       try {
-        const res = await api.getMyApplicationForJob(jobId);
-        if (res.status === "SUCCESS" && res.data) {
-          setMyApplication(res.data);
+        const response = await api.getMyApplicationForJob(jobId);
+        if (response.status === "SUCCESS" && response.data) {
+          setMyApplication(response.data);
         }
       } catch {
+        // Ignore error for application fetching
       }
     };
 
@@ -76,12 +81,13 @@ export default function JobDetail() {
       const response = await api.toggleJobStatus(jobId);
       if (response.status === "SUCCESS" && response.data) {
         setJob(response.data);
-        toast.success(response.message);
+        toast.success("Cập nhật trạng thái thành công");
       } else {
-        toast.error(response.message || "Không thể thay đổi trạng thái");
+        toast.error(response.message || "Không thể cập nhật trạng thái");
       }
-    } catch {
-      toast.error("Đã có lỗi xảy ra");
+    } catch (error) {
+      console.error('Toggle status error:', error);
+      toast.error("Không thể cập nhật trạng thái");
     } finally {
       setIsToggling(false);
     }
@@ -112,8 +118,8 @@ export default function JobDetail() {
         coverLetter: coverLetter.trim() || undefined,
         walletAddress: walletAddress,
       });
-      if (response.status === "SUCCESS") {
-        toast.success(response.message || "Ứng tuyển thành công!");
+      if (response.status === "SUCCESS" && response.data) {
+        toast.success("Ứng tuyển thành công!");
         setShowApplyDialog(false);
         setCoverLetter("");
         setMyApplication(response.data);
@@ -123,8 +129,9 @@ export default function JobDetail() {
       } else {
         toast.error(response.message || "Không thể ứng tuyển");
       }
-    } catch {
-      toast.error("Đã có lỗi xảy ra");
+    } catch (error) {
+      console.error('Apply error:', error);
+      toast.error("Không thể ứng tuyển");
     } finally {
       setIsApplying(false);
     }
@@ -136,32 +143,8 @@ export default function JobDetail() {
     }
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
-      currency: currency,
-      maximumFractionDigits: 0,
+      currency: "VND",
     }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Hôm nay";
-    if (diffDays === 1) return "Hôm qua";
-    if (diffDays < 7) return `${diffDays} ngày trước`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
-    return `${Math.floor(diffDays / 30)} tháng trước`;
   };
 
   if (isLoading) {
@@ -190,45 +173,75 @@ export default function JobDetail() {
         Quay lại
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-3">
-          <JobDetailHeader
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00b14f] mx-auto mb-4"></div>
+          <p className="text-gray-500">Đang tải thông tin công việc...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <Icon name="error" size={48} className="text-red-500 mx-auto mb-4" />
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[#00b14f] text-white rounded-lg hover:bg-[#00a045] transition-colors"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      {/* Job Content */}
+      {!isLoading && !error && job && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-3">
+            <JobDetailHeader
+              job={job}
+              isOwner={!!isOwner}
+              formatCurrency={formatCurrency}
+              formatRelativeTime={formatRelativeTime}
+            />
+            <JobDetailContent job={job} />
+          </div>
+
+          {/* Sidebar */}
+          <JobDetailSidebar
             job={job}
             isOwner={!!isOwner}
-            formatCurrency={formatCurrency}
+            isToggling={isToggling}
+            myApplication={myApplication}
+            onApply={() => setShowApplyDialog(true)}
+            onToggleStatus={handleToggleStatus}
+            formatDate={formatAdvancedDeadline}
+            formatSubmissionDeadline={formatSubmissionDeadline}
+            formatReviewDeadline={formatReviewDeadline}
             formatRelativeTime={formatRelativeTime}
+            formatFullDateTime={formatFullDateTime}
           />
-          <JobDetailContent job={job} />
         </div>
-
-        {/* Sidebar */}
-        <JobDetailSidebar
-          job={job}
-          isOwner={!!isOwner}
-          isToggling={isToggling}
-          hasApplied={hasApplied}
-          myApplication={myApplication}
-          onApply={() => setShowApplyDialog(true)}
-          onToggleStatus={handleToggleStatus}
-          formatDate={formatDate}
-        />
-      </div>
+      )}
 
       {/* Apply Dialog */}
-      <JobApplyDialog
-        open={showApplyDialog}
-        onOpenChange={setShowApplyDialog}
-        jobTitle={job.title}
-        coverLetter={coverLetter}
-        onCoverLetterChange={setCoverLetter}
-        onSubmit={handleApply}
-        isLoading={isApplying}
-        walletAddress={walletAddress}
-        isWalletConnected={isWalletConnected}
-        onConnectWallet={handleConnectWallet}
-        isWalletConnecting={isWalletConnecting}
-      />
+      {!isLoading && !error && job && (
+        <JobApplyDialog
+          open={showApplyDialog}
+          onOpenChange={setShowApplyDialog}
+          jobTitle={job.title}
+          coverLetter={coverLetter}
+          onCoverLetterChange={setCoverLetter}
+          onSubmit={handleApply}
+          isLoading={isApplying}
+          walletAddress={walletAddress}
+          isWalletConnected={isWalletConnected}
+          onConnectWallet={handleConnectWallet}
+          isWalletConnecting={isWalletConnecting}
+        />
+      )}
     </div>
   );
 }

@@ -30,28 +30,28 @@ export default function ProfileCard({ user, onUpdate, isLoading }: ProfileCardPr
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [roleInput, setRoleInput] = useState("");
   const [formData, setFormData] = useState({
-    fullName: user.fullName || "Nguyễn Văn A",
-    title: user.title || "Senior Software Engineer",
-    location: user.location || "Hồ Chí Minh, Việt Nam",
-    company: user.company || "ABC Technology",
-    phoneNumber: user.phoneNumber || "0901234567",
+    fullName: user.fullName || "",
+    title: user.title || "",
+    location: user.location || "",
+    company: user.company || "",
+    phoneNumber: user.phoneNumber || "",
     isOpenToWork: user.isOpenToWork ?? true,
-    openToWorkRoles: user.openToWorkRoles?.length ? user.openToWorkRoles : ["Frontend Developer", "Fullstack Developer"],
-    bankAccountNumber: user.bankAccountNumber || "1234567890",
-    bankName: user.bankName || "Vietcombank",
+    openToWorkRoles: user.openToWorkRoles?.length ? user.openToWorkRoles : [],
+    bankAccountNumber: user.bankAccountNumber || "",
+    bankName: user.bankName || "",
   });
 
   const handleOpenEdit = () => {
     setFormData({
-      fullName: user.fullName || "Nguyễn Văn A",
-      title: user.title || "Senior Software Engineer",
-      location: user.location || "Hồ Chí Minh, Việt Nam",
-      company: user.company || "ABC Technology",
-      phoneNumber: user.phoneNumber || "0901234567",
+      fullName: user.fullName || "",
+      title: user.title || "",
+      location: user.location || "",
+      company: user.company || "",
+      phoneNumber: user.phoneNumber || "",
       isOpenToWork: user.isOpenToWork ?? true,
-      openToWorkRoles: user.openToWorkRoles?.length ? user.openToWorkRoles : ["Frontend Developer", "Fullstack Developer"],
-      bankAccountNumber: user.bankAccountNumber || "1234567890",
-      bankName: user.bankName || "Vietcombank",
+      openToWorkRoles: user.openToWorkRoles?.length ? user.openToWorkRoles : [],
+      bankAccountNumber: user.bankAccountNumber || "",
+      bankName: user.bankName || "",
     });
     setRoleInput("");
     setIsEditOpen(true);

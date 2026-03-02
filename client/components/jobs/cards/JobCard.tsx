@@ -69,13 +69,22 @@ export default function JobCard({ job, onFavorite, isFavorite = false }: JobCard
           <div className="flex items-center flex-wrap gap-2">
             {/* Budget/Salary */}
             <span className="inline-flex items-center px-2.5 py-1 bg-[#e8f5e9] text-[#00875a] text-xs font-medium rounded-md">
-              {formatBudget(job.budget)}
+              {formatBudget(job.budget)} {job.currency}
             </span>
 
             {/* Location */}
-            <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">
-              {job.employer.location || "Remote"}
-            </span>
+            {(job.location || job.employer?.location) && (job.location || job.employer?.location) !== "Remote" && (
+              <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">
+                {job.location || job.employer?.location}
+              </span>
+            )}
+
+            {/* Tags */}
+            {job.tags && job.tags.length > 0 && job.tags.slice(0, 2).map((tag, idx) => (
+              <span key={idx} className="inline-flex items-center px-2.5 py-1 bg-purple-50 text-purple-600 text-[10px] font-semibold rounded-md uppercase">
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
 

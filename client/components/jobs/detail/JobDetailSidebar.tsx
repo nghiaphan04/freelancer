@@ -19,22 +19,28 @@ interface JobDetailSidebarProps {
   job: Job;
   isOwner: boolean;
   isToggling: boolean;
-  hasApplied: boolean;
   myApplication: JobApplication | null;
   onApply: () => void;
   onToggleStatus: () => void;
   formatDate: (dateString: string) => string;
+  formatSubmissionDeadline?: (dateString: string) => string;
+  formatReviewDeadline?: (dateString: string) => string;
+  formatRelativeTime?: (dateString: string) => string;
+  formatFullDateTime?: (dateString: string) => string;
 }
 
 export default function JobDetailSidebar({
   job,
   isOwner,
   isToggling,
-  hasApplied,
   myApplication,
   onApply,
   onToggleStatus,
   formatDate,
+  formatSubmissionDeadline,
+  formatReviewDeadline,
+  formatRelativeTime,
+  formatFullDateTime,
 }: JobDetailSidebarProps) {
   return (
     <div className="space-y-3">
@@ -142,7 +148,7 @@ export default function JobDetailSidebar({
                 <Icon name="upload_file" size={20} className="text-gray-600 mt-0.5" />
                 <div>
                   <p className="text-sm text-gray-600">Hạn nộp sản phẩm</p>
-                  <p className="font-medium text-gray-800">{formatDate(job.workSubmissionDeadline)}</p>
+                  <p className="font-medium text-gray-800">{formatSubmissionDeadline?.(job.workSubmissionDeadline) || formatDate(job.workSubmissionDeadline)}</p>
                   <p className="text-xs text-gray-500 mt-1">
                     Quá hạn sẽ bị hủy và công việc mở lại
                   </p>
@@ -154,7 +160,7 @@ export default function JobDetailSidebar({
                 <Icon name="rate_review" size={20} className="text-gray-600 mt-0.5" />
                 <div>
                   <p className="text-sm text-gray-600">Hạn duyệt sản phẩm</p>
-                  <p className="font-medium text-gray-800">{formatDate(job.workReviewDeadline)}</p>
+                  <p className="font-medium text-gray-800">{formatReviewDeadline?.(job.workReviewDeadline) || formatDate(job.workReviewDeadline)}</p>
                   <p className="text-xs text-gray-500 mt-1">
                     Quá hạn sẽ tự động duyệt và thanh toán
                   </p>
@@ -226,7 +232,7 @@ export default function JobDetailSidebar({
               </p>
               <Button
                 onClick={onToggleStatus}
-                disabled={isToggling || (job.status === "OPEN" && job.applicationCount > 0)}
+                disabled={isToggling}
                 className={`w-full ${
                   job.status === "DRAFT"
                     ? "bg-[#00b14f] hover:bg-[#009643]"
@@ -255,11 +261,11 @@ export default function JobDetailSidebar({
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Ngày đăng</span>
-            <span className="font-medium text-gray-900">{formatDate(job.createdAt)}</span>
+            <span className="font-medium text-gray-900">{formatFullDateTime?.(job.createdAt) || formatDate(job.createdAt)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Cập nhật</span>
-            <span className="font-medium text-gray-900">{formatDate(job.updatedAt)}</span>
+            <span className="font-medium text-gray-900">{formatFullDateTime?.(job.updatedAt) || formatDate(job.updatedAt)}</span>
           </div>
         </div>
       </div>

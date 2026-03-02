@@ -23,15 +23,19 @@ export default function Hero() {
   
   // Search state
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [searchLocation, setSearchLocation] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   // Fetch categories from API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await api.getCategoriesWithJobCounts();
-        setCategories(data);
+        setLoading(true);
+        const response = await api.getCategoriesWithDetailsAndJobCounts();
+        if (response.status === "SUCCESS" && response.data) {
+          setCategories(response.data);
+        }
       } catch (error) {
         console.error("Failed to fetch categories:", error);
       } finally {
@@ -52,22 +56,66 @@ export default function Hero() {
   // Handle search submit
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchKeyword.trim() && !searchLocation.trim()) return;
+    
+    // Get location from selected provinces/districts
+    let locationText = "";
+    if (selectedProvinces.length > 0) {
+      const provinceNames = selectedProvinces.map(id => {
+        const province = provinces.find(p => p.id === id);
+        return province ? province.name : '';
+      }).filter(Boolean);
+      locationText = provinceNames.join(', ');
+    }
+    
+    if (!searchKeyword.trim() && !locationText.trim() && !selectedCategory && selectedTags.length === 0) return;
     
     setIsSearching(true);
     try {
       // Build search params
       const params = new URLSearchParams();
       if (searchKeyword.trim()) params.append("keyword", searchKeyword.trim());
-      if (searchLocation.trim()) params.append("location", searchLocation.trim());
+      if (locationText.trim()) params.append("location", locationText.trim());
+      if (selectedCategory) params.append("category", selectedCategory.toString());
+      if (selectedTags.length > 0) params.append("skills", selectedTags.join(', '));
       
       // Navigate to jobs page with search params
-      router.push(`/jobs?${params.toString()}`);
+      router.push(`/jobs?${params.toString()}`, { scroll: false });
     } catch (error) {
       console.error("Search error:", error);
     } finally {
       setIsSearching(false);
     }
+  };
+
+  // Handle tag click
+  const handleTagClick = (tag: string, categoryId?: number) => {
+    setSelectedTags(prev => {
+      if (prev.includes(tag)) {
+        return prev.filter(t => t !== tag);
+      } else {
+        return [...prev, tag];
+      }
+    });
+
+    // Auto-select the category that contains this tag
+    if (categoryId) {
+      setSelectedCategory(categoryId);
+    } else {
+      // Find category that contains this tag
+      const categoryWithTag = categories.find(cat => 
+        cat.popularTags?.includes(tag) || 
+        cat.subCategories?.some(sub => sub.tags.some(t => t.name === tag))
+      );
+      if (categoryWithTag) {
+        setSelectedCategory(categoryWithTag.id);
+      }
+    }
+  };
+
+  // Handle category click
+  const handleCategoryClick = (categoryId: number) => {
+    // Select category for search (no immediate navigation)
+    setSelectedCategory(categoryId);
   };
 
   const itemsPerPage = 6;
@@ -104,6 +152,36 @@ export default function Hero() {
 
       <div className="max-w-6xl mx-auto px-4 relative z-[100]">
         
+        {/* Selected Filters Display */}
+        {(selectedTags.length > 0 || selectedCategory) && (
+          <div className="bg-white rounded-xl p-3 mb-4 shadow-lg">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-gray-600">Đã chọn:</span>
+              {selectedCategory && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(null)}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-[#00b14f] text-white rounded-full text-sm hover:bg-[#009643] transition-colors"
+                >
+                  {categories.find(c => c.id === selectedCategory)?.name}
+                  <Icon name="close" size={14} />
+                </button>
+              )}
+              {selectedTags.map((tag, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleTagClick(tag)}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-[#00b14f] text-white rounded-full text-sm hover:bg-[#009643] transition-colors"
+                >
+                  {tag}
+                  <Icon name="close" size={14} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Search Bar */}
         <form onSubmit={handleSearch} className="bg-white rounded-2xl md:rounded-full p-2 md:p-1.5 flex flex-col md:flex-row items-stretch md:items-center gap-2 mb-6 shadow-lg relative z-[9999]">
           {/* Search input + Location picker row */}
@@ -153,58 +231,85 @@ export default function Hero() {
         {mobileMenuOpen && (
           <div className="md:hidden bg-white rounded-xl shadow-lg mb-4 overflow-hidden">
             <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
-              {categories.map((category) => (
-                <div key={category.id} className="border-b border-gray-100 last:border-b-0">
-                  <button
-                    onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
-                    className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-700">{category.name}</span>
-                    <Icon 
-                      name={expandedCategory === category.id ? "expand_less" : "expand_more"} 
-                      size={18} 
-                      className="text-gray-400" 
-                    />
-                  </button>
-                  
-                  {expandedCategory === category.id && (
-                    <div className="bg-gray-50 px-4 py-2">
+              {loading ? (
+                // Loading skeleton for mobile
+                <div className="p-4 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="border-b border-gray-100 pb-3 last:border-b-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                        <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
                       <div className="flex flex-wrap gap-2">
-                        {(category.popularTags || []).map((tag, idx) => (
-                          <a
-                            key={idx}
-                            href="#"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-[#00b14f] hover:text-[#00b14f] transition-colors"
-                          >
-                            <Icon name="check_circle" size={14} className="text-[#00b14f]" />
-                            {tag}
-                          </a>
+                        {[...Array(3)].map((_, j) => (
+                          <div key={j} className="h-6 bg-gray-200 rounded-full w-16 animate-pulse"></div>
                         ))}
                       </div>
-                      {category.subCategories && category.subCategories.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          {category.subCategories.map((subCat, idx) => (
-                            <div key={idx} className="mb-2 last:mb-0">
-                              <p className="text-xs font-semibold text-gray-500 mb-1">{subCat.name}</p>
-                              <div className="flex flex-wrap gap-1">
-                                {(subCat.tags || []).map((tag, tIdx) => (
-                                  <a
-                                    key={tIdx}
-                                    href="#"
-                                    className="px-2 py-1 bg-white rounded text-xs text-gray-600 hover:text-[#00b14f] transition-colors"
-                                  >
-                                    {tag.name}
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                categories.map((category) => (
+                  <div key={category.id} className="border-b border-gray-100 last:border-b-0">
+                    <button
+                      onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
+                      className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-gray-700">{category.name}</span>
+                      <Icon 
+                        name={expandedCategory === category.id ? "expand_less" : "expand_more"} 
+                        size={18} 
+                        className="text-gray-400" 
+                      />
+                    </button>
+                    
+                    {expandedCategory === category.id && (
+                      <div className="bg-gray-50 px-4 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          {(category.popularTags || []).map((tag, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleTagClick(tag, category.id)}
+                              className={`inline-flex items-center gap-1 px-3 py-1.5 border rounded-full text-xs transition-colors ${
+                                selectedTags.includes(tag)
+                                  ? "bg-[#00b14f] text-white border-[#00b14f]"
+                                  : "bg-white border-gray-200 text-gray-600 hover:border-[#00b14f] hover:text-[#00b14f]"
+                              }`}
+                            >
+                              <Icon name="check_circle" size={14} className={selectedTags.includes(tag) ? "text-white" : "text-[#00b14f]"} />
+                              {tag}
+                            </button>
                           ))}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                        {category.subCategories && category.subCategories.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            {category.subCategories.map((subCat, idx) => (
+                              <div key={idx} className="mb-2 last:mb-0">
+                                <p className="text-xs font-semibold text-gray-500 mb-1">{subCat.name}</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {(subCat.tags || []).map((tag, tIdx) => (
+                                    <button
+                                      key={tIdx}
+                                      onClick={() => handleTagClick(tag.name)}
+                                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                                        selectedTags.includes(tag.name)
+                                          ? "bg-[#00b14f] text-white"
+                                          : "bg-white text-gray-600 hover:text-[#00b14f]"
+                                      }`}
+                                    >
+                                      {tag.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -217,58 +322,76 @@ export default function Hero() {
           
           {/* Left Sidebar - Job Categories (Hidden on mobile) */}
           <div className="hidden md:block md:col-span-4 lg:col-span-3 bg-white rounded-xl shadow-lg overflow-visible relative z-20">
-            <div className="divide-y divide-gray-100 rounded-t-xl overflow-hidden">
-              {currentCategories.map((category) => (
-                <div
-                  key={category.id}
-                  className="relative"
-                  onMouseEnter={() => setHoveredCategory(category.id)}
-                >
-                  <a
-                    href="#"
-                    className={`flex items-center justify-between px-4 py-3.5 transition-colors group ${
-                      hoveredCategory === category.id ? "bg-gray-50 text-[#00b14f]" : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className={`text-sm truncate pr-2 ${
-                      hoveredCategory === category.id ? "text-[#00b14f] font-medium" : "text-gray-700 group-hover:text-[#00b14f]"
-                    }`}>
-                      {category.name}
-                    </span>
-                    <Icon name="chevron_right" size={18} className={`shrink-0 ${
-                      hoveredCategory === category.id ? "text-[#00b14f]" : "text-gray-400"
-                    }`} />
-                  </a>
-                </div>
-              ))}
-            </div>
-            
-            {/* Pagination */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-              <span className="text-sm text-gray-500">{currentPage}/{totalPages}</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Icon name="chevron_left" size={18} className="text-gray-500" />
-                </button>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Icon name="chevron_right" size={18} className="text-gray-500" />
-                </button>
+            {loading ? (
+              // Loading skeleton
+              <div className="p-4 space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                    <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="divide-y divide-gray-100 rounded-t-xl overflow-hidden">
+                  {currentCategories.map((category) => (
+                    <div
+                      key={category.id}
+                      className="relative"
+                      onMouseEnter={() => setHoveredCategory(category.id)}
+                    >
+                      <a
+                        onClick={() => handleCategoryClick(category.id)}
+                        className={`flex items-center justify-between px-4 py-3.5 transition-colors group cursor-pointer ${
+                          selectedCategory === category.id 
+                            ? "bg-[#00b14f]/10 text-[#00b14f] border-l-4 border-[#00b14f]" 
+                            : hoveredCategory === category.id 
+                              ? "bg-gray-50 text-[#00b14f]" 
+                              : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className={`text-sm truncate pr-2 ${
+                          hoveredCategory === category.id ? "text-[#00b14f] font-medium" : "text-gray-700 group-hover:text-[#00b14f]"
+                        }`}>
+                          {category.name}
+                        </span>
+                        <Icon name="chevron_right" size={18} className={`shrink-0 ${
+                          hoveredCategory === category.id ? "text-[#00b14f]" : "text-gray-400"
+                        }`} />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                  <span className="text-sm text-gray-500">{currentPage}/{totalPages}</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Icon name="chevron_left" size={18} className="text-gray-500" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Icon name="chevron_right" size={18} className="text-gray-500" />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Category Hover Dropdown - Covers Banner Area (Tablet & Desktop) */}
-          {hoveredCategory && (
+          {hoveredCategory && !loading && (
             <div 
-              className="absolute left-[33%] md:left-[33%] lg:left-[25%] top-0 right-0 bottom-0 bg-white rounded-r-xl shadow-xl border border-gray-200 z-[9999] hidden md:flex flex-col overflow-hidden"
+              className="absolute left-[33%] md:left-[33%] lg:left-[25%] top-0 right-0 bottom-0 bg-white rounded-r-xl shadow-xl border border-gray-200 z-[9999] hidden md:flex flex-col overflow-hidden group"
               onMouseEnter={() => {}}
               onMouseLeave={() => setHoveredCategory(null)}
             >
@@ -282,14 +405,18 @@ export default function Hero() {
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Được tìm kiếm nhiều</h4>
                       <div className="flex flex-wrap gap-2">
                         {(category.popularTags || []).map((tag, idx) => (
-                          <a
+                          <button
                             key={idx}
-                            href="#"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-full text-sm text-gray-600 hover:border-[#00b14f] hover:text-[#00b14f] transition-colors"
+                            onClick={() => handleTagClick(tag, category.id)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-sm transition-colors ${
+                              selectedTags.includes(tag)
+                                ? "bg-[#00b14f] text-white border-[#00b14f]"
+                                : "border-gray-200 text-gray-600 hover:border-[#00b14f] hover:text-[#00b14f]"
+                            }`}
                           >
-                            <Icon name="check_circle" size={16} className="text-[#00b14f]" />
+                            <Icon name="check_circle" size={16} className={selectedTags.includes(tag) ? "text-white" : "text-[#00b14f]"} />
                             {tag}
-                          </a>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -302,27 +429,23 @@ export default function Hero() {
                             <h5 className="text-sm font-semibold text-gray-700 mb-2">{subCat.name}</h5>
                             <div className="flex flex-wrap gap-2">
                               {(subCat.tags || []).map((tag, tIdx) => (
-                                <a
+                                <button
                                   key={tIdx}
-                                  href="#"
-                                  className="px-3 py-1.5 bg-gray-50 rounded-full text-sm text-gray-600 hover:bg-[#e8f5e9] hover:text-[#00b14f] transition-colors"
+                                  onClick={() => handleTagClick(tag.name)}
+                                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                                    selectedTags.includes(tag.name)
+                                      ? "bg-[#00b14f] text-white"
+                                      : "bg-gray-50 text-gray-600 hover:bg-[#e8f5e9] hover:text-[#00b14f]"
+                                  }`}
                                 >
                                   {tag.name}
-                                </a>
+                                </button>
                               ))}
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
-
-                    {/* Scroll hint */}
-                    <div className="flex justify-end mt-4 pt-3 border-t border-gray-100">
-                      <a href="#" className="inline-flex items-center gap-1 text-sm text-[#00b14f] hover:underline">
-                        <Icon name="expand_more" size={16} />
-                        Cuộn để xem
-                      </a>
-                    </div>
                   </div>
                 );
               })()}

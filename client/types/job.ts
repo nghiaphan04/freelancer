@@ -26,6 +26,16 @@ export interface JobEmployer {
   untrustScore?: number;    // Điểm không uy tín (KUT)
 }
 
+export interface JobCategory {
+  id: number;
+  name: string;
+}
+
+export interface JobSubCategory {
+  id: number;
+  name: string;
+}
+
 // Job response from backend
 export interface Job {
   id: number;
@@ -68,6 +78,11 @@ export interface Job {
   signDeadline?: string;
   contractSignedAt?: string;
   jobWorkSubmittedAt?: string;
+  // New fields
+  location?: string;           // Địa điểm làm việc
+  category?: JobCategory;      // Thông tin danh mục
+  subCategory?: JobSubCategory; // Thông tin danh mục con
+  tags?: string[];            // Tags bổ sung (cùng dữ liệu với skills)
   // Dispute info (for DISPUTED status)
   disputeInfo?: {
     id: number;
@@ -147,8 +162,6 @@ export interface JobSearchRequest {
   skills?: string[];        // Tags/kỹ năng
   workType?: WorkType;      // PART_TIME, FULL_TIME
   complexity?: JobComplexity; // ENTRY, INTERMEDIATE, EXPERT
-  minBudget?: number;       // Budget tối thiểu
-  maxBudget?: number;       // Budget tối đa
   page?: number;
   size?: number;
   sortBy?: string;

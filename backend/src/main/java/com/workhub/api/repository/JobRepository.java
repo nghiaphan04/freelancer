@@ -30,8 +30,8 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
         @Query("SELECT j FROM Job j WHERE j.status = :status AND " +
                         "(j.applicationDeadline IS NULL OR j.applicationDeadline > :now) AND " +
-                        "(LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-                        "LOWER(j.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+                        "(LOWER(j.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR " +
+                        "LOWER(j.description) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
         Page<Job> searchJobs(@Param("keyword") String keyword,
                         @Param("status") EJobStatus status,
                         @Param("now") java.time.LocalDateTime now,
@@ -116,10 +116,12 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
         // Advanced search with multiple criteria
         @Query("SELECT DISTINCT j FROM Job j JOIN j.employer e LEFT JOIN j.skills s WHERE " +
-                        "(:keyword IS NULL OR LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(j.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND "
+                        "(:keyword IS NULL OR LOWER(j.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR LOWER(j.description) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) AND "
                         +
-                        "(:company IS NULL OR LOWER(e.company) LIKE LOWER(CONCAT('%', :company, '%'))) AND " +
-                        "(:location IS NULL OR LOWER(j.location) LIKE LOWER(CONCAT('%', :location, '%')) OR LOWER(e.location) LIKE LOWER(CONCAT('%', :location, '%'))) AND "
+                        "(:categoryId IS NULL OR j.category.id = :categoryId) AND "
+                        +
+                        "(:company IS NULL OR e.company LIKE CONCAT('%', CAST(:company AS string), '%')) AND " +
+                        "(:location IS NULL OR j.location LIKE CONCAT('%', CAST(:location AS string), '%') OR e.location LIKE CONCAT('%', CAST(:location AS string), '%')) AND "
                         +
                         "(:skills IS NULL OR s IN :skills) AND " +
                         "(:workType IS NULL OR j.workType = :workType) AND " +
@@ -130,6 +132,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
                         "(j.applicationDeadline IS NULL OR j.applicationDeadline > :now)")
         Page<Job> advancedSearch(
                         @Param("keyword") String keyword,
+                        @Param("categoryId") Long categoryId,
                         @Param("company") String company,
                         @Param("location") String location,
                         @Param("skills") java.util.Set<String> skills,

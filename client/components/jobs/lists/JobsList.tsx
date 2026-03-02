@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Job, Page } from "@/types/job";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import JobCardWithPreview from "../cards/JobCardWithPreview";
-import JobCategoriesSidebar from "../sidebar/JobCategoriesSidebar";
-import JobsSearchBar from "../shared/JobsSearchBar";
+import AdvancedJobsSearchBar from "../shared/AdvancedJobsSearchBar";
 import JobsEmptyState from "../shared/JobsEmptyState";
 import JobsError from "../shared/JobsError";
 import Icon from "@/components/ui/Icon";
@@ -16,25 +15,55 @@ import { toast } from "sonner";
 
 const JOBS_PER_PAGE = 9;
 
-export default function JobsList() {
+interface JobsListProps {
+  initialCategory?: string;
+}
+
+export default function JobsList({ initialCategory }: JobsListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   
   const [jobs, setJobs] = useState<Job[]>([]);
   const [page, setPage] = useState<Page<Job> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchKeyword, setSearchKeyword] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
-  const currentPage = parseInt(searchParams.get("page") || "0");
+  // Unified search and filter state
+  const [searchState, setSearchState] = useState({
+    keyword: searchParams.get("keyword") || "",
+    location: searchParams.get("location") || "",
+    category: searchParams.get("category") || initialCategory || "",
+    skills: searchParams.get("skills") || "", // Initialize skills from URL string
+    selectedTags: [], // Don't use hidden selectedTags state, unify into skills string
+    workType: searchParams.get("workType") || "",
+  });
+
+  const handleSearchChange = (key: string, value: string | string[]) => {
+    setSearchState(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Sync state with URL when it changes (for back/forward navigation)
+  useEffect(() => {
+    setSearchState({
+      keyword: searchParams.get("keyword") || "",
+      location: searchParams.get("location") || "",
+      category: searchParams.get("category") || initialCategory || "",
+      skills: searchParams.get("skills") || "",
+      selectedTags: [],
+      workType: searchParams.get("workType") || "",
+    });
+  }, [searchParams, initialCategory]);
+
+  const currentPage = Math.max(0, parseInt(searchParams.get("page") || "0", 10));
 
   const fetchSavedJobIds = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
       const response = await api.getSavedJobIds();
-      if (response.status === "SUCCESS" && response.data) {
+      if (response.status === "SUCCESS" && Array.isArray(response.data)) {
         setFavorites(new Set(response.data));
       }
     } catch {
@@ -45,7 +74,35 @@ export default function JobsList() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.getOpenJobs({ page: pageNum, size: JOBS_PER_PAGE, sortBy: "createdAt", sortDir: "desc" });
+      // Use URL search params for the actual fetch to ensure consistency with browser history
+      const keyword = searchParams.get("keyword");
+      const location = searchParams.get("location");
+      const category = searchParams.get("category") || initialCategory;
+      const skillsParam = searchParams.get("skills");
+      const workType = searchParams.get("workType");
+      
+      const allSkills = skillsParam ? skillsParam.split(',').map(s => s.trim()).filter(Boolean) : [];
+      
+      let response;
+      if (keyword || location || category || allSkills.length > 0 || workType) {
+        // Call search API if we have search params
+        const searchRequest = {
+          page: pageNum,
+          size: JOBS_PER_PAGE,
+          sortBy: "createdAt",
+          sortDir: "desc" as const,
+          keyword: keyword || undefined,
+          location: location || undefined,
+          category: category || undefined,
+          skills: allSkills.length > 0 ? allSkills : undefined,
+          workType: workType || undefined
+        };
+        
+        response = await api.searchJobs(searchRequest);
+      } else {
+        // Call regular getOpenJobs if no search params
+        response = await api.getOpenJobs({ page: pageNum, size: JOBS_PER_PAGE, sortBy: "createdAt", sortDir: "desc" as const });
+      }
       
       if (response.status === "SUCCESS" && response.data) {
         setJobs(response.data.content);
@@ -53,29 +110,35 @@ export default function JobsList() {
       } else {
         setError(response.message || "Không thể tải danh sách việc làm");
       }
-    } catch {
+    } catch (error) {
+      console.error("Fetch jobs error:", error);
       setError("Có lỗi xảy ra khi tải dữ liệu");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [searchParams, initialCategory]);
 
   useEffect(() => {
     fetchJobs(currentPage);
     fetchSavedJobIds();
   }, [currentPage, fetchJobs, fetchSavedJobIds]);
 
-  const filteredJobs = jobs.filter((job) =>
-    searchKeyword.trim() === "" ||
-    job.title.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-    job.skills?.some((skill) => skill.toLowerCase().includes(searchKeyword.toLowerCase()))
-  );
-
   const handlePageChange = (newPage: number) => {
+    // Ensure newPage is a valid number
+    const pageNum = Math.max(0, parseInt(String(newPage), 10));
     const params = new URLSearchParams(searchParams.toString());
-    params.set("page", newPage.toString());
-    router.push(`/jobs?${params.toString()}`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    params.set("page", pageNum.toString());
+    
+    // Use pathname to maintain the correct route
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    
+    // Only scroll when actually changing pages, not when searching
+    if (pageNum !== currentPage) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Don't scroll when just updating search params
+      return;
+    }
   };
 
   const handleFavorite = async (jobId: number) => {
@@ -98,22 +161,10 @@ export default function JobsList() {
     });
 
     try {
-      const response = await api.toggleSaveJob(jobId);
-      if (response.status === "SUCCESS") {
-        toast.success(isSaved ? "Đã bỏ lưu công việc" : "Đã lưu công việc");
-      } else {
-        setFavorites(prev => {
-          const newFavorites = new Set(prev);
-          if (isSaved) {
-            newFavorites.add(jobId);
-          } else {
-            newFavorites.delete(jobId);
-          }
-          return newFavorites;
-        });
-        toast.error(response.message || "Có lỗi xảy ra");
-      }
+      await api.toggleSaveJob(jobId);
+      toast.success(isSaved ? "Đã bỏ lưu công việc" : "Đã lưu công việc");
     } catch {
+      // Revert the optimistic update
       setFavorites(prev => {
         const newFavorites = new Set(prev);
         if (isSaved) {
@@ -199,34 +250,41 @@ export default function JobsList() {
 
   return (
     <div className="max-w-7xl mx-auto px-4">
-      {/* Search Bar */}
+      {/* Search Bar (Top) */}
       <div className="mb-6">
-        <JobsSearchBar
-          value={searchKeyword}
-          onChange={setSearchKeyword}
-          placeholder="Tìm kiếm việc làm theo tên, kỹ năng..."
+        <AdvancedJobsSearchBar
+          key="top-search"
+          hideCategoryFilter
+          showFilters={false}
+          value={searchState}
+          onChange={handleSearchChange}
+          onSearch={() => fetchJobs(0)}
         />
       </div>
 
-      {/* Main Content with Sidebar */}
-      <div className="flex gap-6">
-        {/* Sidebar - Hidden on mobile/tablet */}
-        <div className="hidden lg:block w-[280px] shrink-0">
-          <div className="sticky top-20 z-50">
-            <JobCategoriesSidebar />
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Filters (Left) */}
+        <div className="w-full lg:w-[340px] shrink-0 h-fit">
+          <div className="lg:sticky lg:top-20">
+            <AdvancedJobsSearchBar
+              key="sidebar-filters"
+              showSearchBar={false}
+              value={searchState}
+              onChange={handleSearchChange}
+              onSearch={() => fetchJobs(0)}
+            />
           </div>
         </div>
 
-        {/* Jobs Content */}
+        {/* Jobs Content (Right) */}
         <div className="flex-1 min-w-0">
           {/* Results Info */}
           {!isLoading && (
             <div className="flex items-center justify-between mb-4">
               <p className="text-gray-600">
-                {searchKeyword ? (
+                {searchParams.toString() ? (
                   <>
-                    Tìm thấy <span className="font-semibold text-[#00b14f]">{filteredJobs.length}</span> việc làm 
-                    cho &quot;<span className="font-medium">{searchKeyword}</span>&quot;
+                    Tìm thấy <span className="font-semibold text-[#00b14f]">{page?.totalElements || 0}</span> việc làm
                   </>
                 ) : (
                   <>
@@ -239,17 +297,19 @@ export default function JobsList() {
 
           {/* Jobs Grid */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-3">
               {Array.from({ length: 9 }).map((_, idx) => (
-                <div key={idx} className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="flex gap-3">
-                    <Skeleton className="w-14 h-14 rounded-lg" />
+                <div key={idx} className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4">
+                  <div className="flex gap-2 sm:gap-3">
+                    <Skeleton className="w-24 h-16 sm:w-32 sm:h-20 md:w-40 md:h-24 lg:w-52 lg:h-32 rounded-lg" />
                     <div className="flex-1">
-                      <Skeleton className="h-4 w-3/4 mb-2" />
-                      <Skeleton className="h-3 w-1/2 mb-3" />
+                      <Skeleton className="h-3 sm:h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-2.5 sm:h-3 w-1/2 mb-1" />
+                      <Skeleton className="h-2.5 sm:h-3 w-full mb-1" />
+                      <Skeleton className="h-2.5 sm:h-3 w-2/3 mb-2 sm:mb-3" />
                       <div className="flex gap-2">
-                        <Skeleton className="h-6 w-20 rounded-md" />
-                        <Skeleton className="h-6 w-16 rounded-md" />
+                        <Skeleton className="h-5 sm:h-6 w-16 sm:w-20 rounded-md" />
+                        <Skeleton className="h-5 sm:h-6 w-12 sm:w-16 rounded-md" />
                       </div>
                     </div>
                   </div>
@@ -258,15 +318,15 @@ export default function JobsList() {
             </div>
           ) : error ? (
             <JobsError message={error} onRetry={() => fetchJobs(currentPage)} />
-          ) : filteredJobs.length === 0 ? (
+          ) : jobs.length === 0 ? (
             <JobsEmptyState
               title="Không tìm thấy việc làm"
-              message={searchKeyword ? "Thử tìm kiếm với từ khóa khác" : "Hiện chưa có việc làm nào đang tuyển"}
+              message={searchParams.toString() ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm" : "Hiện chưa có việc làm nào đang tuyển"}
             />
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filteredJobs.map((job) => (
+              <div className="space-y-3">
+                {jobs.map((job) => (
                   <JobCardWithPreview
                     key={job.id}
                     job={job}
@@ -276,8 +336,8 @@ export default function JobsList() {
                 ))}
               </div>
 
-              {/* Pagination - only show when not filtering */}
-              {!searchKeyword && renderPagination()}
+              {/* Pagination */}
+              {renderPagination()}
             </>
           )}
         </div>

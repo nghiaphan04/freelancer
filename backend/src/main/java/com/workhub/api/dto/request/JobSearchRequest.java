@@ -20,6 +20,7 @@ public class JobSearchRequest {
     private Set<String> skills;       // Tags/kỹ năng
     private String workType;          // PART_TIME, FULL_TIME
     private String complexity;        // ENTRY, INTERMEDIATE, EXPERT
+    private Long categoryId;          // ID danh mục
     private Integer minBudget;        // Budget tối thiểu
     private Integer maxBudget;        // Budget tối đa
     

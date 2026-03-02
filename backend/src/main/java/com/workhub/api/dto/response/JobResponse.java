@@ -46,6 +46,11 @@ public class JobResponse {
     private FreelancerResponse freelancer;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private String location;
+    private CategoryResponse category;
+    private SubCategoryResponse subCategory;
+    private Set<String> tags;
     
     private EWorkStatus workStatus;
     private String workSubmissionUrl;

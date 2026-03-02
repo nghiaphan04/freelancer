@@ -125,8 +125,10 @@ export default function Products() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await api.getCategoriesWithJobCounts();
-        setCategories(data);
+        const response = await api.getCategoriesWithDetailsAndJobCounts();
+        if (response.status === "SUCCESS" && response.data) {
+          setCategories(response.data);
+        }
       } catch (error) {
         console.error("Failed to fetch categories:", error);
       } finally {

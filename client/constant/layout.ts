@@ -160,26 +160,27 @@ export const toolsMenu = {
   title: "CÔNG CỤ",
   items: [
     [
-      { icon: "calculate", label: "Tính lương Gross - Net", href: "/coming-soon" },
-      { icon: "elderly", label: "Tính bảo hiểm xã hội một lần", href: "/coming-soon" },
+      { icon: "calculate", label: "Tính lương Gross - Net", href: "/tools/gross-net" },
+      { icon: "elderly", label: "Tính bảo hiểm xã hội một lần", href: "/tools/social-insurance" },
     ],
     [
-      { icon: "receipt_long", label: "Tính thuế thu nhập cá nhân", href: "/coming-soon" },
-      { icon: "savings", label: "Lập kế hoạch tiết kiệm", href: "/coming-soon" },
+      { icon: "receipt_long", label: "Tính thuế thu nhập cá nhân", href: "/tools/pit" },
+      { icon: "savings", label: "Lập kế hoạch tiết kiệm", href: "/tools/savings" },
     ],
     [
-      { icon: "percent", label: "Tính lãi suất kép", href: "/coming-soon" },
-      { icon: "smartphone", label: "Mobile App Freelancer", href: "/coming-soon" },
+      { icon: "percent", label: "Tính lãi suất kép", href: "/tools/compound-interest" },
+      { icon: "smartphone", label: "Mobile App Freelancer", href: "/tools/mobile-app" },
     ],
     [
-      { icon: "account_balance", label: "Tính bảo hiểm thất nghiệp", href: "/coming-soon" },
-      null,
+      { icon: "account_balance", label: "Tính bảo hiểm thất nghiệp", href: "/tools/unemployment-insurance" },
+      { icon: "psychology", label: "Trắc nghiệm MBTI", href: "/mbti" },
     ],
   ]
 };
 
 export const careerMenuLeft = [
   { icon: "explore", label: "Định hướng nghề nghiệp", href: "/blog" },
+  { icon: "psychology", label: "Trắc nghiệm MBTI", href: "/mbti" },
   { icon: "lightbulb", label: "Bí kíp tìm việc", href: "/blog" },
   { icon: "payments", label: "Chế độ lương thưởng", href: "/blog" },
   { icon: "school", label: "Kiến thức chuyên ngành", href: "/blog" },
@@ -189,16 +190,16 @@ export const careerMenuLeft = [
 
 export const careerMenuArticles = [
   {
-    image: "/logo.svg",
-    title: "Ngành Marketing là gì? Cơ hội việc làm mới nhất",
-    desc: "Marketing là một trong những ngành đóng vai trò quan trọng trong hầu hết các doanh nghiệp...",
-    href: "/blog"
+    image: "/landing/slide1.png",
+    title: "Ngành Marketing là gì? Cơ hội việc làm mới nhất 2026",
+    desc: "Marketing là một trong những ngành đóng vai trò quan trọng trong hầu hết các doanh nghiệp hiện đại...",
+    href: "/blog/1"
   },
   {
-    image: "/logo.svg",
+    image: "/landing/slide2.png",
     title: "Tài mẫu sơ yếu lý lịch xin việc chuẩn nhất 2026",
     desc: "Sơ yếu lý lịch là một trong những giấy tờ quan trọng nhất khi chuẩn bị hồ sơ xin việc, bởi nó...",
-    href: "/blog"
+    href: "/blog/2"
   },
 ];
 

@@ -64,19 +64,19 @@ export default function JobDetailContent({ job }: JobDetailContentProps) {
           </section>
         )}
 
-        {/* Section 5: Skills */}
-        {job.skills && job.skills.length > 0 && (
+        {/* Section 5: Skills & Tags */}
+        {((job.skills && job.skills.length > 0) || (job.tags && job.tags.length > 0)) && (
           <section>
             <h3 className="text-sm font-bold text-gray-800 mb-2">
-              {++sectionNumber}. Kỹ năng yêu cầu
+              {++sectionNumber}. Kỹ năng & Tags
             </h3>
             <div className="pl-4 flex flex-wrap gap-2">
-              {job.skills.map((skill) => (
+              {[...new Set([...(job.skills || []), ...(job.tags || [])])].map((item) => (
                 <span
-                  key={skill}
-                  className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded"
+                  key={item}
+                  className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-[#e8f5e9] hover:text-[#00875a] transition-colors"
                 >
-                  {skill}
+                  {item}
                 </span>
               ))}
             </div>

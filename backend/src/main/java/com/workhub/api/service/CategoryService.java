@@ -22,110 +22,144 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CategoryService {
 
-    private final CategoryRepository categoryRepository;
-    private final JobRepository jobRepository;
+        private final CategoryRepository categoryRepository;
+        private final JobRepository jobRepository;
 
-    @Transactional(readOnly = true)
-    public ApiResponse<List<CategoryResponse>> getAllCategories() {
-        List<Category> categories = categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc();
-        List<CategoryResponse> response = categories.stream()
-                .map(this::mapToCategoryResponse)
-                .collect(Collectors.toList());
-        return ApiResponse.success("Lấy danh sách danh mục thành công", response);
-    }
+        @Transactional(readOnly = true)
+        public ApiResponse<List<CategoryResponse>> getAllCategories() {
+                List<Category> categories = categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc();
+                List<CategoryResponse> response = categories.stream()
+                                .map(this::mapToCategoryResponse)
+                                .collect(Collectors.toList());
+                return ApiResponse.success("Lấy danh sách danh mục thành công", response);
+        }
 
-    @Transactional(readOnly = true)
-    public ApiResponse<List<CategoryResponse>> getAllCategoriesWithDetails() {
-        List<Category> categories = categoryRepository.findAllWithSubCategoriesAndTags();
-        List<CategoryResponse> response = categories.stream()
-                .map(this::mapToCategoryResponseWithDetails)
-                .collect(Collectors.toList());
-        return ApiResponse.success("Lấy danh sách danh mục chi tiết thành công", response);
-    }
+        @Transactional(readOnly = true)
+        public ApiResponse<List<CategoryResponse>> getAllCategoriesWithDetails() {
+                List<Category> categories = categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc();
 
-    @Transactional(readOnly = true)
-    public ApiResponse<List<CategoryResponse>> getAllCategoriesWithJobCounts() {
-        List<Category> categories = categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc();
-        
-        // Get job counts for all categories in one query
-        List<EJobStatus> activeStatuses = Arrays.asList(EJobStatus.OPEN, EJobStatus.IN_PROGRESS);
-        Map<Long, Long> jobCountMap = jobRepository.countJobsByCategory(activeStatuses).stream()
-                .collect(Collectors.toMap(
-                        JobRepository.CategoryJobCount::getCategoryId,
-                        JobRepository.CategoryJobCount::getCount
-                ));
-        
-        List<CategoryResponse> response = categories.stream()
-                .map(c -> mapToCategoryResponseWithJobCount(c, jobCountMap.getOrDefault(c.getId(), 0L)))
-                .collect(Collectors.toList());
-        
-        return ApiResponse.success("Lấy danh sách danh mục với số lượng việc làm thành công", response);
-    }
+                // Trigger lazy loading of subCategories and tags within transaction
+                categories.forEach(c -> {
+                        c.getSubCategories().size(); // Trigger load
+                        c.getSubCategories().forEach(sc -> sc.getTags().size()); // Trigger load
+                });
 
-    private CategoryResponse mapToCategoryResponse(Category category) {
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .displayOrder(category.getDisplayOrder())
-                .icon(category.getIcon())
-                .build();
-    }
+                List<CategoryResponse> response = categories.stream()
+                                .map(this::mapToCategoryResponseWithDetails)
+                                .collect(Collectors.toList());
+                return ApiResponse.success("Lấy danh sách danh mục chi tiết thành công", response);
+        }
 
-    private CategoryResponse mapToCategoryResponseWithJobCount(Category category, Long jobCount) {
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .displayOrder(category.getDisplayOrder())
-                .icon(category.getIcon())
-                .jobCount(jobCount)
-                .build();
-    }
+        @Transactional(readOnly = true)
+        public ApiResponse<List<CategoryResponse>> getAllCategoriesWithJobCounts() {
+                List<Category> categories = categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc();
 
-    private CategoryResponse mapToCategoryResponseWithDetails(Category category) {
-        List<String> popularTags = category.getSubCategories().stream()
-                .flatMap(sc -> sc.getTags().stream())
-                .filter(SubCategoryTag::getIsPopular)
-                .sorted((t1, t2) -> t1.getDisplayOrder().compareTo(t2.getDisplayOrder()))
-                .map(SubCategoryTag::getName)
-                .collect(Collectors.toList());
+                // Get job counts for all categories in one query
+                List<EJobStatus> activeStatuses = Arrays.asList(EJobStatus.OPEN, EJobStatus.IN_PROGRESS);
+                Map<Long, Long> jobCountMap = jobRepository.countJobsByCategory(activeStatuses).stream()
+                                .collect(Collectors.toMap(
+                                                JobRepository.CategoryJobCount::getCategoryId,
+                                                JobRepository.CategoryJobCount::getCount));
 
-        List<SubCategoryResponse> subCategories = category.getSubCategories().stream()
-                .filter(SubCategory::getIsActive)
-                .sorted((sc1, sc2) -> sc1.getDisplayOrder().compareTo(sc2.getDisplayOrder()))
-                .map(this::mapToSubCategoryResponse)
-                .collect(Collectors.toList());
+                List<CategoryResponse> response = categories.stream()
+                                .map(c -> mapToCategoryResponseWithJobCount(c, jobCountMap.getOrDefault(c.getId(), 0L)))
+                                .collect(Collectors.toList());
 
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .displayOrder(category.getDisplayOrder())
-                .icon(category.getIcon())
-                .popularTags(popularTags)
-                .subCategories(subCategories)
-                .build();
-    }
+                return ApiResponse.success("Lấy danh sách danh mục với số lượng việc làm thành công", response);
+        }
 
-    private SubCategoryResponse mapToSubCategoryResponse(SubCategory subCategory) {
-        List<SubCategoryTagResponse> tags = subCategory.getTags().stream()
-                .filter(SubCategoryTag::getIsActive)
-                .sorted((t1, t2) -> t1.getDisplayOrder().compareTo(t2.getDisplayOrder()))
-                .map(this::mapToSubCategoryTagResponse)
-                .collect(Collectors.toList());
+        @Transactional(readOnly = true)
+        public ApiResponse<List<CategoryResponse>> getAllCategoriesWithDetailsAndJobCounts() {
+                List<Category> categories = categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc();
 
-        return SubCategoryResponse.builder()
-                .id(subCategory.getId())
-                .name(subCategory.getName())
-                .displayOrder(subCategory.getDisplayOrder())
-                .tags(tags)
-                .build();
-    }
+              
+                categories.forEach(c -> {
+                        c.getSubCategories().size(); // Trigger load
+                        c.getSubCategories().forEach(sc -> sc.getTags().size()); 
+                });
 
-    private SubCategoryTagResponse mapToSubCategoryTagResponse(SubCategoryTag tag) {
-        return SubCategoryTagResponse.builder()
-                .id(tag.getId())
-                .name(tag.getName())
-                .isPopular(tag.getIsPopular())
-                .displayOrder(tag.getDisplayOrder())
-                .build();
-    }
+                List<EJobStatus> activeStatuses = Arrays.asList(EJobStatus.OPEN, EJobStatus.IN_PROGRESS);
+                Map<Long, Long> jobCountMap = jobRepository.countJobsByCategory(activeStatuses).stream()
+                                .collect(Collectors.toMap(
+                                                JobRepository.CategoryJobCount::getCategoryId,
+                                                JobRepository.CategoryJobCount::getCount));
+
+                List<CategoryResponse> response = categories.stream()
+                                .map(c -> {
+                                        CategoryResponse dto = mapToCategoryResponseWithDetails(c);
+                                        dto.setJobCount(jobCountMap.getOrDefault(c.getId(), 0L));
+                                        return dto;
+                                })
+                                .collect(Collectors.toList());
+
+                return ApiResponse.success("Lấy danh sách danh mục chi tiết với số lượng việc làm thành công",
+                                response);
+        }
+
+        private CategoryResponse mapToCategoryResponse(Category category) {
+                return CategoryResponse.builder()
+                                .id(category.getId())
+                                .name(category.getName())
+                                .displayOrder(category.getDisplayOrder())
+                                .icon(category.getIcon())
+                                .build();
+        }
+
+        private CategoryResponse mapToCategoryResponseWithJobCount(Category category, Long jobCount) {
+                return CategoryResponse.builder()
+                                .id(category.getId())
+                                .name(category.getName())
+                                .displayOrder(category.getDisplayOrder())
+                                .icon(category.getIcon())
+                                .jobCount(jobCount)
+                                .build();
+        }
+
+        private CategoryResponse mapToCategoryResponseWithDetails(Category category) {
+                List<String> popularTags = category.getSubCategories().stream()
+                                .flatMap(sc -> sc.getTags().stream())
+                                .filter(SubCategoryTag::getIsPopular)
+                                .sorted((t1, t2) -> t1.getDisplayOrder().compareTo(t2.getDisplayOrder()))
+                                .map(SubCategoryTag::getName)
+                                .collect(Collectors.toList());
+
+                List<SubCategoryResponse> subCategories = category.getSubCategories().stream()
+                                .filter(SubCategory::getIsActive)
+                                .sorted((sc1, sc2) -> sc1.getDisplayOrder().compareTo(sc2.getDisplayOrder()))
+                                .map(this::mapToSubCategoryResponse)
+                                .collect(Collectors.toList());
+
+                return CategoryResponse.builder()
+                                .id(category.getId())
+                                .name(category.getName())
+                                .displayOrder(category.getDisplayOrder())
+                                .icon(category.getIcon())
+                                .popularTags(popularTags)
+                                .subCategories(subCategories)
+                                .build();
+        }
+
+        private SubCategoryResponse mapToSubCategoryResponse(SubCategory subCategory) {
+                List<SubCategoryTagResponse> tags = subCategory.getTags().stream()
+                                .filter(SubCategoryTag::getIsActive)
+                                .sorted((t1, t2) -> t1.getDisplayOrder().compareTo(t2.getDisplayOrder()))
+                                .map(this::mapToSubCategoryTagResponse)
+                                .collect(Collectors.toList());
+
+                return SubCategoryResponse.builder()
+                                .id(subCategory.getId())
+                                .name(subCategory.getName())
+                                .displayOrder(subCategory.getDisplayOrder())
+                                .tags(tags)
+                                .build();
+        }
+
+        private SubCategoryTagResponse mapToSubCategoryTagResponse(SubCategoryTag tag) {
+                return SubCategoryTagResponse.builder()
+                                .id(tag.getId())
+                                .name(tag.getName())
+                                .isPopular(tag.getIsPopular())
+                                .displayOrder(tag.getDisplayOrder())
+                                .build();
+        }
 }

@@ -51,7 +51,6 @@ export default function EmployerJobCard({
   const [submissionCountdown, setSubmissionCountdown] = useState<string>("");
   const [reviewCountdown, setReviewCountdown] = useState<string>("");
   
-  const budgetLabel = formatBudget(job);
   const hasReviewDeadline = Boolean(job.workReviewDeadline);
   const hasSubmissionDeadline = Boolean(job.workSubmissionDeadline);
   const canEdit = job.status === "DRAFT";
@@ -59,6 +58,12 @@ export default function EmployerJobCard({
   const isLoading = isToDraftLoading || isToOpenLoading || isPaymentLoading || isCancelBeforeSignLoading;
   const isPendingSignature = job.status === "PENDING_SIGNATURE";
   const isInProgress = job.status === "IN_PROGRESS";
+
+  const displayCountdown = (!isPendingSignature || !job.signDeadline) ? "" : countdown;
+  const displaySubmissionCountdown = (!isInProgress || !job.workSubmissionDeadline || hasReviewDeadline) ? "" : submissionCountdown;
+  const displayReviewCountdown = (!isInProgress || !job.workReviewDeadline) ? "" : reviewCountdown;
+  
+  const budgetLabel = formatBudget(job);
 
   // Helper function to format countdown
   const formatCountdown = (diff: number): string => {
@@ -92,10 +97,7 @@ export default function EmployerJobCard({
 
   // Countdown timer for submission deadline
   useEffect(() => {
-    if (!isInProgress || !job.workSubmissionDeadline || hasReviewDeadline) {
-      setSubmissionCountdown("");
-      return;
-    }
+    if (!isInProgress || !job.workSubmissionDeadline || hasReviewDeadline) return;
 
     const updateCountdown = () => {
       const deadline = new Date(job.workSubmissionDeadline!).getTime();
@@ -110,10 +112,7 @@ export default function EmployerJobCard({
 
   // Countdown timer for review deadline
   useEffect(() => {
-    if (!isInProgress || !job.workReviewDeadline) {
-      setReviewCountdown("");
-      return;
-    }
+    if (!isInProgress || !job.workReviewDeadline) return;
 
     const updateCountdown = () => {
       const deadline = new Date(job.workReviewDeadline!).getTime();
@@ -190,7 +189,7 @@ export default function EmployerJobCard({
             {job.status === "DRAFT" && job.escrowId && (
               <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">
                 <Icon name="visibility_off" size={16} />
-                <span>Công việc đang ẩn → Bấm "Công khai" để hiện lại</span>
+                <span>Công việc đang ẩn → Bấm &quot;Công khai&quot; để hiện lại</span>
               </div>
             )}
 
@@ -211,9 +210,9 @@ export default function EmployerJobCard({
                     <Icon name="draw" size={16} />
                     <span>Đang chờ người làm ký hợp đồng</span>
                   </div>
-                  {countdown && (
-                    <span className={`font-medium ${countdown === "Đã hết hạn" ? "text-gray-700" : "text-green-600"}`}>
-                      {countdown === "Đã hết hạn" ? countdown : `Còn ${countdown}`}
+                  {displayCountdown && (
+                    <span className={`font-medium ${displayCountdown === "Đã hết hạn" ? "text-gray-700" : "text-green-600"}`}>
+                      {displayCountdown === "Đã hết hạn" ? displayCountdown : `Còn ${displayCountdown}`}
                     </span>
                   )}
                 </div>
@@ -250,9 +249,9 @@ export default function EmployerJobCard({
                   <Icon name="upload_file" size={16} />
                   <span>Chờ người làm nộp bài (hạn: {formatDate(job.workSubmissionDeadline)})</span>
                 </div>
-                {submissionCountdown && (
-                  <span className={`font-medium ${submissionCountdown === "Đã hết hạn" ? "text-gray-700" : "text-green-600"}`}>
-                    {submissionCountdown === "Đã hết hạn" ? submissionCountdown : `Còn ${submissionCountdown}`}
+                {displaySubmissionCountdown && (
+                  <span className={`font-medium ${displaySubmissionCountdown === "Đã hết hạn" ? "text-gray-700" : "text-green-600"}`}>
+                    {displaySubmissionCountdown === "Đã hết hạn" ? displaySubmissionCountdown : `Còn ${displaySubmissionCountdown}`}
                   </span>
                 )}
               </div>
@@ -264,9 +263,9 @@ export default function EmployerJobCard({
                   <Icon name="rate_review" size={16} />
                   <span>Người làm đã nộp bài → Duyệt sản phẩm</span>
                 </div>
-                {reviewCountdown && (
-                  <span className={`font-medium ${reviewCountdown === "Đã hết hạn" ? "text-gray-700" : "text-green-600"}`}>
-                    {reviewCountdown === "Đã hết hạn" ? "Quá hạn!" : `Còn ${reviewCountdown}`}
+                {displayReviewCountdown && (
+                  <span className={`font-medium ${displayReviewCountdown === "Đã hết hạn" ? "text-gray-700" : "text-green-600"}`}>
+                    {displayReviewCountdown === "Đã hết hạn" ? "Quá hạn!" : `Còn ${displayReviewCountdown}`}
                   </span>
                 )}
               </div>
@@ -296,7 +295,7 @@ export default function EmployerJobCard({
               <span className="sm:hidden lg:inline ml-1">Chi tiết</span>
             </Button>
           </Link>
-          {job.applicationCount > 0 && (job.status === "OPEN" || job.status === "DRAFT") && (
+          {(job.status === "OPEN" || job.status === "DRAFT") && (
             <Link href={`/jobs/${job.id}/applications`} className="flex-1 sm:flex-none">
               <Button size="sm" className="w-full bg-[#00b14f] hover:bg-[#009643]" disabled={isLoading}>
                 <Icon name="people" size={16} />

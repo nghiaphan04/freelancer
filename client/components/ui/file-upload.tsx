@@ -147,7 +147,7 @@ export function ImageUploadButton({
   onUpload,
   usage,
   disabled,
-  maxSize = 200 * 1024,
+  maxSize = 5 * 1024 * 1024,
   className,
   children,
 }: ImageUploadButtonProps) {

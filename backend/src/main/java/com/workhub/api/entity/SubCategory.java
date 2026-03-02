@@ -2,7 +2,11 @@ package com.workhub.api.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
@@ -38,6 +42,8 @@ public class SubCategory {
     private Boolean isActive = true;
 
     @OneToMany(mappedBy = "subCategory", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
+    @BatchSize(size = 50)
     @Builder.Default
     private List<SubCategoryTag> tags = new ArrayList<>();
 
