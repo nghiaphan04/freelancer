@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { api } from "@/lib/api";
+import { api, CVScoreResult } from "@/lib/api";
 import { toast } from "sonner";
 
 interface JobApplyDialogProps {
@@ -45,6 +45,8 @@ export default function JobApplyDialog({
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvFileId, setCvFileId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [cvScore, setCvScore] = useState<CVScoreResult | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = () => {
@@ -100,6 +102,30 @@ export default function JobApplyDialog({
   const handleRemoveCv = () => {
     setCvFile(null);
     setCvFileId(null);
+    setCvScore(null);
+  };
+
+  const handleEvaluateCV = async () => {
+    if (!cvFile) return;
+    
+    setIsEvaluating(true);
+    try {
+      const uploadRes = await api.uploadCVToScoring(cvFile);
+      const jobText = `${jobTitle}\n${coverLetter || ""}`;
+      
+      const jobRes = await fetch(`${process.env.NEXT_PUBLIC_CV_SCORING_URL || "http://localhost:8081"}/api/job/create?job_text=${encodeURIComponent(jobText)}`, {
+        method: "POST",
+      });
+      const jobData = await jobRes.json();
+      
+      const score = await api.analyzeCV(uploadRes.cv_id, jobData.job_id);
+      setCvScore(score);
+      toast.success(`Đánh giá CV: ${score.final_score.toFixed(1)} điểm`);
+    } catch {
+      toast.error("Không thể đánh giá CV");
+    } finally {
+      setIsEvaluating(false);
+    }
   };
 
   const handleSubmit = () => {
@@ -156,26 +182,41 @@ export default function JobApplyDialog({
               CV / Hồ sơ năng lực <span className="text-red-500">*</span>
             </p>
             {cvFile ? (
-              <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-                  <Icon name="picture_as_pdf" size={22} className="text-red-500" />
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                    <Icon name="picture_as_pdf" size={22} className="text-red-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{cvFile.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(cvFile.size)}
+                      {isUploading && " • Đang tải lên..."}
+                      {cvFileId && " • ✓ Đã tải lên"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCv}
+                    disabled={isLoading || isUploading}
+                    className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                  >
+                    <Icon name="close" size={18} />
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{cvFile.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {formatFileSize(cvFile.size)}
-                    {isUploading && " • Đang tải lên..."}
-                    {cvFileId && " • ✓ Đã tải lên"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveCv}
-                  disabled={isLoading || isUploading}
-                  className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                >
-                  <Icon name="close" size={18} />
-                </button>
+
+                {/* Hiển thị điểm sau khi đánh giá */}
+                {cvScore && (
+                  <div className={`p-3 rounded-lg text-center ${cvScore.final_score >= 50 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <p className="text-xs text-gray-500 mb-1">Điểm đánh giá CV</p>
+                    <p className={`text-2xl font-bold ${cvScore.final_score >= 50 ? 'text-green-600' : 'text-red-600'}`}>
+                      {cvScore.final_score.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {cvScore.final_score >= 75 ? 'Phù hợp cao' : cvScore.final_score >= 50 ? 'Phù hợp trung bình' : 'Phù hợp thấp'}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <button
@@ -228,6 +269,23 @@ Trân trọng,
           <Button variant="outline" onClick={handleClose} disabled={isLoading || isUploading}>
             Hủy
           </Button>
+          
+          {/* Nút đánh giá CV bởi AI - dùng ảnh nhỏ */}
+          {cvFileId && !cvScore && (
+            <button
+              type="button"
+              onClick={handleEvaluateCV}
+              disabled={isEvaluating}
+              className="flex items-center p-1 justify-center  rounded-lg hover:bg-gray-100 transition-all disabled:opacity-70 border border-gray-200"
+            >
+              <img
+                src="/im-ai.png"
+                alt="Đánh giá CV"
+                className={`h-7 cursor-pointer w-auto object-contain ${isEvaluating ? 'animate-pulse' : ''}`}
+              />
+            </button>
+          )}
+          
           <Button 
             onClick={handleSubmit} 
             disabled={isLoading || isUploading || !isWalletConnected || !cvFileId} 

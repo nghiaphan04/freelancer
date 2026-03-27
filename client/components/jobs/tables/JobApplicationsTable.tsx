@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, notFound } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { api, JobApplication, ApplicationStatus } from "@/lib/api";
+import { api, JobApplication, ApplicationStatus, CVScoreResult } from "@/lib/api";
 import { useWallet } from "@/context/WalletContext";
 import { Job } from "@/types/job";
 import Icon from "@/components/ui/Icon";
@@ -55,6 +55,10 @@ export default function JobApplicationsTable() {
   const [confirmAction, setConfirmAction] = useState<"accept" | "reject" | null>(null);
 
   const [showSkillsDialog, setShowSkillsDialog] = useState(false);
+  const [cvScores, setCvScores] = useState<Record<number, CVScoreResult>>({});
+  const [isScoring, setIsScoring] = useState(false);
+  const [scoringApps, setScoringApps] = useState<Set<number>>(new Set());
+  const [showScoreColumn, setShowScoreColumn] = useState(false);
   const [showCoverLetterDialog, setShowCoverLetterDialog] = useState(false);
   const [viewingApp, setViewingApp] = useState<JobApplication | null>(null);
 
@@ -121,6 +125,79 @@ export default function JobApplicationsTable() {
       setShowBatchRejectDialog(false);
       setIsBatchProcessing(false);
     }
+  };
+
+  // CV Scoring Function
+  const handleScoreCVs = async () => {
+    if (!job) return;
+    
+    const appsWithCV = applications.filter(app => app.cvFileUrl && app.status === "PENDING");
+    if (appsWithCV.length === 0) {
+      toast.info("Không có CV nào để chấm điểm");
+      return;
+    }
+
+    setIsScoring(true);
+    setShowScoreColumn(true);
+    const scores: Record<number, CVScoreResult> = {};
+    const jobText = `${job.title}\n${job.description}\n${job.requirements || ""}`;
+
+    try {
+      for (const app of appsWithCV) {
+        try {
+          setScoringApps(prev => new Set(prev).add(app.id));
+          
+          // Download CV file
+          const response = await fetch(app.cvFileUrl!);
+          const blob = await response.blob();
+          const file = new File([blob], app.cvFileName || "cv.pdf", { type: "application/pdf" });
+
+          // Upload to scoring service
+          const uploadRes = await api.uploadCVToScoring(file);
+          
+          // Create job entry in Python service
+          const jobRes = await fetch(`${process.env.NEXT_PUBLIC_CV_SCORING_URL || "http://localhost:8081"}/api/job/create?job_text=${encodeURIComponent(jobText)}`, {
+            method: "POST",
+          });
+          const jobData = await jobRes.json();
+          
+          // Analyze CV
+          const score = await api.analyzeCV(uploadRes.cv_id, jobData.job_id);
+          scores[app.id] = score;
+          
+          // Update state ngay sau mỗi CV
+          setCvScores(prev => ({ ...prev, [app.id]: score }));
+        } catch (err) {
+          console.error(`Failed to score CV for ${app.freelancer.fullName}:`, err);
+        } finally {
+          setScoringApps(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(app.id);
+            return newSet;
+          });
+        }
+      }
+
+      setCvScores(scores);
+      
+      // Sort applications by score
+      const scoredApps = [...applications].sort((a, b) => {
+        const scoreA = scores[a.id]?.final_score || 0;
+        const scoreB = scores[b.id]?.final_score || 0;
+        return scoreB - scoreA;
+      });
+      
+      setFilteredApplications(scoredApps);
+      toast.success(`Đã chấm điểm ${Object.keys(scores).length} CV`);
+    } catch (error) {
+      toast.error("Chấm điểm CV thất bại");
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
+  const getScoreColor = (score: number, isHighest: boolean) => {
+    return isHighest ? "text-green-600" : "text-red-600";
   };
 
   useEffect(() => {
@@ -315,6 +392,25 @@ export default function JobApplicationsTable() {
                 Từ chối {selectedPendingIds.length} người
               </Button>
             )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              onClick={handleScoreCVs}
+              disabled={isScoring}
+            >
+              {isScoring ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2" />
+                  Đang chấm điểm...
+                </>
+              ) : (
+                <>
+                  <Icon name="analytics" size={16} />
+                  Chấm điểm CV bởi AI
+                </>
+              )}
+            </Button>
           </div>
           <span className="text-sm text-gray-500">
             Tổng: {filteredApplications.length} người làm
@@ -352,6 +448,9 @@ export default function JobApplicationsTable() {
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày ứng tuyển</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                  {showScoreColumn && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Điểm CV</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -461,6 +560,19 @@ export default function JobApplicationsTable() {
                         <span className="text-gray-400 text-center block">-</span>
                       )}
                     </td>
+                    {showScoreColumn && (
+                      <td className="px-4 py-3 text-center">
+                        {scoringApps.has(app.id) ? (
+                          <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                        ) : cvScores[app.id] ? (
+                          <span className={`font-bold text-lg ${getScoreColor(cvScores[app.id].final_score, cvScores[app.id].final_score === Math.max(...Object.values(cvScores).map(s => s.final_score)))}`}>
+                            {cvScores[app.id].final_score.toFixed(1)}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

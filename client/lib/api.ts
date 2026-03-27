@@ -597,7 +597,38 @@ export const api = {
   deleteFile: (fileId: number) =>
     request<void>(`/api/files/${fileId}`, { method: "DELETE" }),
 
+  // CV Scoring - Upload PDF to Python service
+  uploadCVToScoring: async (file: File): Promise<{ cv_id: number; text: string }> => {
+    const CV_SCORING_URL = process.env.NEXT_PUBLIC_CV_SCORING_URL || "http://localhost:8081";
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const res = await fetch(`${CV_SCORING_URL}/api/cv/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error("Upload CV failed");
+    return res.json();
+  },
+
+  // CV Scoring - Analyze CV vs Job
+  analyzeCV: async (cvId: number, jobId: number): Promise<CVScoreResult> => {
+    const CV_SCORING_URL = process.env.NEXT_PUBLIC_CV_SCORING_URL || "http://localhost:8081";
+    const res = await fetch(`${CV_SCORING_URL}/api/analyze?cv_id=${cvId}&job_id=${jobId}`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error("CV analysis failed");
+    return res.json();
+  },
 };
+
+// CV Scoring Types
+export interface CVScoreResult {
+  embedding_score: number;
+  rerank_score: number;
+  final_score: number;
+  explanation: "Strong match" | "Moderate match" | "Low match";
+}
 
 // ==================== FILE UPLOAD TYPES ====================
 export interface FileUploadResponse {
