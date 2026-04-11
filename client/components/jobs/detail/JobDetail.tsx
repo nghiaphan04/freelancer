@@ -13,6 +13,7 @@ import JobDetailHeader from "./JobDetailHeader";
 import JobDetailContent from "./JobDetailContent";
 import JobDetailSidebar from "./JobDetailSidebar";
 import JobApplyDialog from "./JobApplyDialog";
+import JobCard from "../cards/JobCard";
 
 const DEFAULT_COVER_LETTER = "Chào anh/chị,\n\nTôi rất quan tâm đến vị trí này và tin rằng kỹ năng cùng kinh nghiệm của tôi sẽ phù hợp với yêu cầu công việc.\n\nRất mong được hợp tác cùng anh/chị.\n\nTrân trọng.";
 
@@ -27,6 +28,8 @@ export default function JobDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isToggling, setIsToggling] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [relatedJobs, setRelatedJobs] = useState<Job[]>([]);
 
   const [showApplyDialog, setShowApplyDialog] = useState(false);
   const [coverLetter, setCoverLetter] = useState(DEFAULT_COVER_LETTER);
@@ -34,7 +37,7 @@ export default function JobDetail() {
   const [myApplication, setMyApplication] = useState<JobApplication | null>(null);
 
   const isOwner = user && job && user.id === job.employer.id;
-  const hasApplied = !!myApplication;
+  const hasApplied = !!myApplication && myApplication.status !== "REJECTED";
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -44,6 +47,14 @@ export default function JobDetail() {
         console.log('Job API response:', response);
         if (response.status === "SUCCESS" && response.data) {
           setJob(response.data);
+          try {
+            const relatedRes = await api.getOpenJobs({ size: 4 });
+            if (relatedRes.status === "SUCCESS" && relatedRes.data) {
+              setRelatedJobs(relatedRes.data.content.filter(j => j.id !== jobId).slice(0, 3));
+            }
+          } catch (e) {
+            console.error('Failed to fetch related jobs', e);
+          }
         } else {
           setError(response.message || "Không tìm thấy công việc");
         }
@@ -66,10 +77,22 @@ export default function JobDetail() {
       }
     };
 
+    const fetchSavedStatus = async () => {
+      try {
+        const response = await api.getSavedJobIds();
+        if (response.status === "SUCCESS" && Array.isArray(response.data)) {
+          setIsSaved(response.data.includes(jobId));
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+
     if (jobId) {
       fetchJob();
       if (user) {
         fetchMyApplication();
+        fetchSavedStatus();
       }
     }
   }, [jobId, user]);
@@ -138,6 +161,53 @@ export default function JobDetail() {
     }
   };
 
+  const handleSaveJob = async () => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để lưu công việc");
+      router.push("/login");
+      return;
+    }
+
+    // Optimistic update
+    const newIsSaved = !isSaved;
+    setIsSaved(newIsSaved);
+
+    try {
+      await api.toggleSaveJob(jobId);
+      toast.success(newIsSaved ? "Đã lưu công việc" : "Đã bỏ lưu công việc");
+    } catch (error) {
+      // Revert on error
+      setIsSaved(!newIsSaved);
+      toast.error("Có lỗi xảy ra khi lưu công việc");
+    }
+  };
+
+  const handleQuitJob = async () => {
+    if (!job) return;
+    
+    const confirmQuit = confirm(
+      "Bạn có chắc chắn muốn rút khỏi công việc này không?\n\n" +
+      "Lưu ý: Hành động này sẽ được ghi lại và điểm 'Bất tín nhiệm' của bạn sẽ tăng thêm +1. Công việc sẽ được mở lại cho người khác."
+    );
+    
+    if (!confirmQuit) return;
+
+    try {
+      const response = await api.quitJob(jobId);
+      if (response.status === "SUCCESS" && response.data) {
+        setJob(response.data);
+        setMyApplication(prev => prev ? { ...prev, status: "WITHDRAWN" as any } : null);
+        toast.success("Đã rút khỏi công việc thành công");
+        router.refresh();
+      } else {
+        toast.error(response.message || "Không thể rút khỏi công việc");
+      }
+    } catch (error) {
+      console.error('Quit job error:', error);
+      toast.error("Có lỗi xảy ra khi rút khỏi công việc");
+    }
+  };
+
   const formatCurrency = (amount: number, currency: string) => {
     if (currency === "APT") {
       return `${amount.toFixed(4)} APT`;
@@ -198,32 +268,41 @@ export default function JobDetail() {
 
       {/* Job Content */}
       {!isLoading && !error && job && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-3">
+          <div className="lg:col-span-2 space-y-4">
             <JobDetailHeader
               job={job}
               isOwner={!!isOwner}
+              hasApplied={hasApplied}
+              applicationStatus={myApplication?.status}
               formatCurrency={formatCurrency}
               formatRelativeTime={formatRelativeTime}
+              formatFullDateTime={formatFullDateTime}
+              onApply={() => setShowApplyDialog(true)}
+              isSaved={isSaved}
+              onSave={handleSaveJob}
             />
-            <JobDetailContent job={job} />
+            <JobDetailContent job={job} relatedJobs={relatedJobs} />
           </div>
 
           {/* Sidebar */}
-          <JobDetailSidebar
-            job={job}
-            isOwner={!!isOwner}
-            isToggling={isToggling}
-            myApplication={myApplication}
-            onApply={() => setShowApplyDialog(true)}
-            onToggleStatus={handleToggleStatus}
-            formatDate={formatAdvancedDeadline}
-            formatSubmissionDeadline={formatSubmissionDeadline}
-            formatReviewDeadline={formatReviewDeadline}
-            formatRelativeTime={formatRelativeTime}
-            formatFullDateTime={formatFullDateTime}
-          />
+          <div className="lg:col-span-1">
+            <JobDetailSidebar
+              job={job}
+              isOwner={!!isOwner}
+              isToggling={isToggling}
+              myApplication={myApplication}
+              onApply={() => setShowApplyDialog(true)}
+              onToggleStatus={handleToggleStatus}
+              onQuit={handleQuitJob}
+              formatDate={formatAdvancedDeadline}
+              formatSubmissionDeadline={formatSubmissionDeadline}
+              formatReviewDeadline={formatReviewDeadline}
+              formatRelativeTime={formatRelativeTime}
+              formatFullDateTime={formatFullDateTime}
+            />
+          </div>
         </div>
       )}
 

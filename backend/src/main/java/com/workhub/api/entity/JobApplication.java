@@ -191,4 +191,8 @@ public class JobApplication {
     public void setAiExplanation(String aiExplanation) {
         this.aiExplanation = aiExplanation;
     }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
 }

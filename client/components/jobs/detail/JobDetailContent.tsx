@@ -1,12 +1,14 @@
 "use client";
 
 import { Job } from "@/types/job";
+import JobCardWithPreview from "../cards/JobCardWithPreview";
 
 interface JobDetailContentProps {
   job: Job;
+  relatedJobs?: Job[];
 }
 
-export default function JobDetailContent({ job }: JobDetailContentProps) {
+export default function JobDetailContent({ job, relatedJobs = [] }: JobDetailContentProps) {
   let sectionNumber = 0;
   
   return (
@@ -64,25 +66,21 @@ export default function JobDetailContent({ job }: JobDetailContentProps) {
           </section>
         )}
 
-        {/* Section 5: Skills & Tags */}
-        {((job.skills && job.skills.length > 0) || (job.tags && job.tags.length > 0)) && (
-          <section>
-            <h3 className="text-sm font-bold text-gray-800 mb-2">
-              {++sectionNumber}. Kỹ năng & Tags
-            </h3>
-            <div className="pl-4 flex flex-wrap gap-2">
-              {[...new Set([...(job.skills || []), ...(job.tags || [])])].map((item) => (
-                <span
-                  key={item}
-                  className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-[#e8f5e9] hover:text-[#00875a] transition-colors"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
+
+      {/* Related Jobs Section inside the Content block */}
+      {relatedJobs && relatedJobs.length > 0 && (
+        <>
+          <div className="px-6 py-4 border-t border-gray-200">
+            <h2 className="text-lg font-bold text-gray-900 uppercase">Việc làm tương tự</h2>
+          </div>
+          <div className="px-6 pb-6 pt-2 space-y-4">
+            {relatedJobs.map(relatedJob => (
+              <JobCardWithPreview key={relatedJob.id} job={relatedJob} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

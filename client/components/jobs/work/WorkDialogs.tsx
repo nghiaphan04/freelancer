@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api, JobApplication } from "@/lib/api";
 import { useWallet } from "@/context/WalletContext";
 import { formatDateTime } from "@/lib/format";
+import { handleDownload } from "@/lib/download";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -98,7 +99,7 @@ export function WorkSubmitDialog({
   return (
     <Dialog open={open} onOpenChange={(open) => !isSubmitting && onOpenChange(open)}>
       <DialogContent 
-        className="max-w-lg"
+        className="max-w-2xl"
         onPointerDownOutside={(e) => isSubmitting && e.preventDefault()}
         onEscapeKeyDown={(e) => isSubmitting && e.preventDefault()}
       >
@@ -133,7 +134,7 @@ export function WorkSubmitDialog({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Mô tả những gì đã hoàn thành, hướng dẫn sử dụng..."
-              rows={3}
+              rows={6}
               disabled={isSubmitting}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00b14f] disabled:opacity-50 disabled:cursor-not-allowed"
             />
@@ -316,7 +317,7 @@ export function WorkReviewDialog({
   return (
     <Dialog open={open} onOpenChange={(open) => !isProcessing && onOpenChange(open)}>
       <DialogContent 
-        className="max-w-lg"
+        className="max-w-2xl"
         onPointerDownOutside={(e) => isProcessing && e.preventDefault()}
         onEscapeKeyDown={(e) => isProcessing && e.preventDefault()}
       >
@@ -383,17 +384,15 @@ export function WorkReviewDialog({
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-500 mb-2">File sản phẩm:</p>
-                  <a
-                    href={workSubmission.workSubmissionUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download
-                    className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md bg-[#00b14f]/5 hover:bg-[#00b14f]/10 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(workSubmission.workSubmissionUrl!, "San_Pham_Da_Nop.pdf")}
+                    className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md bg-[#00b14f]/5 hover:bg-[#00b14f]/10 transition-colors w-full text-left"
                   >
                     <Icon name="picture_as_pdf" size={20} className="text-red-500 shrink-0" />
                     <span className="flex-1 text-sm text-gray-700">Sản phẩm đã nộp</span>
                     <Icon name="download" size={18} className="text-gray-500 shrink-0" />
-                  </a>
+                  </button>
                 </div>
 
                 {workSubmission.workSubmissionNote && (
@@ -425,7 +424,7 @@ export function WorkReviewDialog({
                     value={revisionNote}
                     onChange={(e) => setRevisionNote(e.target.value)}
                     placeholder="Mô tả những gì cần chỉnh sửa..."
-                    rows={3}
+                    rows={6}
                     disabled={isProcessing}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />

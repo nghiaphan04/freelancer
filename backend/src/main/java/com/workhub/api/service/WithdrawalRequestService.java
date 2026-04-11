@@ -67,16 +67,50 @@ public class WithdrawalRequestService {
                 .reason(req.getReason())
                 .penaltyFee(penaltyFee)
                 .penaltyPercent(FREELANCER_PENALTY_PERCENT)
+                .status(EWithdrawalRequestStatus.APPROVED) // Instant approval
+                .respondedAt(java.time.LocalDateTime.now())
                 .build();
 
         WithdrawalRequest saved = withdrawalRequestRepository.save(request);
 
+        // 1. Reset Job Status to OPEN (Instant Quit logic)
+        job.setStatus(EJobStatus.OPEN);
+        job.setFreelancerWalletAddress(null);
+        job.setAcceptedAt(null);
+        job.setContractSignedAt(null);
+        job.setWorkSubmittedAt(null);
+        job.setWorkSubmissionDeadline(null);
+        job.setWorkReviewDeadline(null);
+        job.clearPendingBlockchainAction();
+        jobRepository.save(job);
+
+        // 2. Set Application Status to WITHDRAWN
+        JobApplication application = jobApplicationRepository.findFirstByJobIdAndStatus(jobId, EApplicationStatus.ACCEPTED)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy đơn ứng tuyển của freelancer"));
+        application.setStatus(EApplicationStatus.WITHDRAWN);
+        jobApplicationRepository.save(application);
+
+        // 3. Reputation update
+        user.addUntrustScore(10);
+        user.deductTrustScore(5);
+        userService.save(user);
+
+        User employer = job.getEmployer();
+        employer.addTrustScore(5);
+        userService.save(employer);
+
+        // 4. History
         jobHistoryService.logHistory(job, user, EJobHistoryAction.WITHDRAWAL_REQUESTED,
-                "Yêu cầu rút khỏi công việc. Lý do: " + req.getReason());
+                "Freelancer đã xin rút khỏi công việc. Lý do: " + req.getReason() + " (TX: " + (txHash != null ? txHash : "N/A") + ")");
+        jobHistoryService.logHistory(job, user, EJobHistoryAction.JOB_CANCELLED, 
+                "Công việc quay lại trạng thái Tuyển dụng.");
 
+        // 5. Notify
         notificationService.notifyWithdrawalRequested(job.getEmployer(), job, user, true);
+        notificationService.notifyWithdrawalApproved(user, job, user);
+        notificationService.notifyJobCancelled(job.getEmployer(), job);
 
-        return ApiResponse.success("Đã tạo yêu cầu rút",
+        return ApiResponse.success("Bạn đã rút khỏi công việc thành công. Công việc đã được mở lại cho người khác.",
                 WithdrawalRequestResponse.fromEntity(saved));
     }
 

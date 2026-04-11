@@ -289,6 +289,12 @@ public class DisputeService {
         int winnerVotes = Boolean.TRUE.equals(dispute.getEmployerWins()) 
                 ? dispute.countEmployerVotes() : dispute.countFreelancerVotes();
 
+        // Update reputation scores
+        winner.addTrustScore(20);
+        loser.addUntrustScore(20);
+        userService.save(winner);
+        userService.save(loser);
+
         notificationService.notifyDisputeResolvedWin(winner, job, job.getBudget() + " APT");
         notificationService.notifyDisputeResolvedLose(loser, job);
 
@@ -321,6 +327,12 @@ public class DisputeService {
 
                 notificationService.notifyDisputeResolvedWin(employer, job, job.getBudget() + " APT");
                 notificationService.notifyLostDueToTimeout(freelancer, job);
+
+                // Update reputation scores
+                employer.addTrustScore(20);
+                freelancer.addUntrustScore(20);
+                userService.save(employer);
+                userService.save(freelancer);
 
                 jobHistoryService.logHistory(job, employer, EJobHistoryAction.DISPUTE_TIMEOUT,
                         "Freelancer không phản hồi. Employer tự động thắng và nhận tiền. TX: " + txHash);
@@ -370,6 +382,12 @@ public class DisputeService {
 
         notificationService.notifyDisputeResolvedWin(employer, job, job.getBudget() + " APT");
         notificationService.notifyDisputeResolvedLose(freelancer, job);
+
+        // Update reputation scores
+        employer.addTrustScore(20);
+        freelancer.addUntrustScore(20);
+        userService.save(employer);
+        userService.save(freelancer);
 
         jobHistoryService.logHistory(job, employer, EJobHistoryAction.DISPUTE_REFUND_CLAIMED,
                 "Freelancer không phản hồi. Employer thắng và đã nhận " + job.getBudget() + " APT. TX: " + txHash);

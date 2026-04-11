@@ -275,21 +275,7 @@ Trân trọng,
             Hủy
           </Button>
           
-          {/* Nút đánh giá CV bởi AI - dùng ảnh nhỏ */}
-          {cvFileId && !cvScore && (
-            <button
-              type="button"
-              onClick={handleEvaluateCV}
-              disabled={isEvaluating}
-              className="flex items-center p-1 justify-center  rounded-lg hover:bg-gray-100 transition-all disabled:opacity-70 border border-gray-200"
-            >
-              <img
-                src="/im-ai.png"
-                alt="Đánh giá CV"
-                className={`h-7 cursor-pointer w-auto object-contain ${isEvaluating ? 'animate-pulse' : ''}`}
-              />
-            </button>
-          )}
+
           
           <Button 
             onClick={handleSubmit} 

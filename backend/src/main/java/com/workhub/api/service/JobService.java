@@ -531,6 +531,60 @@ public class JobService {
     }
 
     @Transactional
+    public ApiResponse<JobResponse> quitJob(Long jobId, Long userId) {
+        Job job = getById(jobId);
+        User freelancer = userService.getById(userId);
+
+        // Check if user is the assigned freelancer
+        JobApplication application = jobApplicationRepository.findFirstByJobIdAndStatus(jobId, EApplicationStatus.ACCEPTED)
+                .orElseThrow(() -> new IllegalStateException("Bạn không phải người làm của công việc này hoặc công việc không có người làm"));
+
+        if (!application.getFreelancer().getId().equals(userId)) {
+            throw new UnauthorizedAccessException("Bạn không có quyền thực hiện hành động này");
+        }
+
+        if (job.getStatus() != EJobStatus.PENDING_SIGNATURE && 
+            job.getStatus() != EJobStatus.SIGNING_TIMEOUT &&
+            job.getStatus() != EJobStatus.IN_PROGRESS &&
+            job.getStatus() != EJobStatus.WORK_TIMEOUT) {
+            throw new IllegalStateException("Chỉ có thể rút khỏi công việc khi đang chờ ký hoặc đang thực hiện");
+        }
+
+        // 1. Reset Job Status to OPEN
+        job.setStatus(EJobStatus.OPEN);
+        job.setFreelancerWalletAddress(null);
+        job.setAcceptedAt(null);
+        job.setContractSignedAt(null);
+        job.setWorkSubmittedAt(null);
+        job.setWorkSubmissionDeadline(null);
+        job.setWorkReviewDeadline(null);
+        job.clearPendingBlockchainAction();
+        jobRepository.save(job);
+
+        // 2. Set Application Status to WITHDRAWN
+        application.setStatus(EApplicationStatus.WITHDRAWN);
+        jobApplicationRepository.save(application);
+
+        // 3. Reputation update
+        freelancer.addUntrustScore(10);
+        freelancer.deductTrustScore(5);
+        userService.save(freelancer);
+        
+        User employer = job.getEmployer();
+        employer.addTrustScore(5);
+        userService.save(employer);
+
+        // 4. Log History
+        jobHistoryService.logHistory(job, freelancer, EJobHistoryAction.JOB_CANCELLED,
+                "Freelancer " + freelancer.getFullName() + " đã xin rút khỏi công việc. Công việc quay lại trạng thái Tuyển dụng.");
+
+        // 5. Notify Employer
+        notificationService.notifyJobCancelled(job.getEmployer(), job); // Reusing Cancelled notification as a fallback
+
+        return ApiResponse.success("Bạn đã rút khỏi công việc thành công. Điểm bất tín nhiệm của bạn đã tăng lên.", buildJobResponse(job));
+    }
+
+    @Transactional
     public ApiResponse<JobResponse> repostJob(Long jobId, Long userId, RepostJobRequest req) {
         Job job = getById(jobId);
         User user = userService.getById(userId);
@@ -723,8 +777,8 @@ public class JobService {
                 .escrowAmount(job.getEscrowAmount())
                 .currency(job.getCurrency())
                 .applicationDeadline(job.getApplicationDeadline())
-                .submissionDays(job.getSubmissionDays())
-                .reviewDays(job.getReviewDays())
+                .submissionDays(job.getSubmissionDays() != null ? job.getSubmissionDays() / 1440 : null)
+                .reviewDays(job.getReviewDays() != null ? job.getReviewDays() / 1440 : null)
                 .status(job.getStatus())
                 .workSubmissionDeadline(job.getWorkSubmissionDeadline())
                 .workReviewDeadline(job.getWorkReviewDeadline())
@@ -744,8 +798,8 @@ public class JobService {
                 .refundTxHash(job.getRefundTxHash())
                 .pendingBlockchainAction(job.getPendingBlockchainAction())
                 .acceptedAt(job.getAcceptedAt())
-                // FOR TESTING: 24h -> 60 minutes
-                .signDeadline(job.getAcceptedAt() != null ? job.getAcceptedAt().plusMinutes(60) : null)
+                // Standard: 24h deadline for signing
+                .signDeadline(job.getAcceptedAt() != null ? job.getAcceptedAt().plusHours(24) : null)
                 .contractSignedAt(job.getContractSignedAt())
                 .jobWorkSubmittedAt(job.getWorkSubmittedAt())
                 .workStatus(workStatus)

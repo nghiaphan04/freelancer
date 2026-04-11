@@ -235,15 +235,24 @@ public class User {
     }
 
     public void addTrustScore(int amount) {
-        this.trustScore += amount;
+        this.trustScore = (this.trustScore == null ? 0 : this.trustScore) + amount;
     }
-
+ 
     public void deductTrustScore(int amount) {
-        this.trustScore = Math.max(0, this.trustScore - amount);
+        int current = this.trustScore == null ? 0 : this.trustScore;
+        this.trustScore = Math.max(0, current - amount);
+    }
+ 
+    public void addUntrustScore(int amount) {
+        this.untrustScore = (this.untrustScore == null ? 0 : this.untrustScore) + amount;
+    }
+ 
+    public Integer getTrustScore() {
+        return trustScore == null ? 0 : trustScore;
     }
 
-    public void addUntrustScore(int amount) {
-        this.untrustScore += amount;
+    public Integer getUntrustScore() {
+        return untrustScore == null ? 0 : untrustScore;
     }
 
     public void updateLastActive() {

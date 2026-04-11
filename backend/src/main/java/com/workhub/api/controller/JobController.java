@@ -206,6 +206,15 @@ public class JobController {
         return ResponseEntity.ok(jobApplicationService.withdrawApplication(applicationId, userDetails.getId()));
     }
 
+    @PostMapping("/{id}/quit")
+    @PreAuthorize("hasRole('FREELANCER')")
+    public ResponseEntity<ApiResponse<JobResponse>> quitJob(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+
+        return ResponseEntity.ok(jobService.quitJob(id, userDetails.getId()));
+    }
+
     @GetMapping("/{id}/applications")
     @PreAuthorize("hasRole('EMPLOYER')")
     public ResponseEntity<ApiResponse<List<JobApplicationResponse>>> getJobApplications(

@@ -167,6 +167,18 @@ export default function JobApplicationsTable() {
     }
   }, [statusFilter, applications]);
 
+  const getUntrustColor = (score: number) => {
+    if (score <= 10) return "text-green-600";
+    if (score <= 30) return "text-amber-500";
+    return "text-red-600";
+  };
+
+  const getUntrustLabel = (score: number) => {
+    if (score <= 10) return "Tốt";
+    if (score <= 30) return "Cảnh báo";
+    return "Báo xấu";
+  };
+
   const REJECTION_TEMPLATE = `Trước hết, Công ty chúng tôi xin chân thành cảm ơn Anh/Chị đã quan tâm và nộp hồ sơ ứng tuyển vào vị trí tại công ty. Chúng tôi đồng thời xin lỗi vì đã để Anh/Chị chờ đợi trong quá trình xem xét và đánh giá hồ sơ. Sau khi cân nhắc kỹ lưỡng, chúng tôi rất tiếc phải thông báo rằng hồ sơ của Anh/Chị hiện chưa phù hợp với yêu cầu của vị trí tuyển dụng ở thời điểm này, do số lượng hồ sơ ứng tuyển lớn và mức độ cạnh tranh cao. Tuy nhiên, chúng tôi đánh giá cao sự quan tâm và thời gian Anh/Chị đã dành cho cơ hội này. Rất mong Anh/Chị sẽ tiếp tục theo dõi và ứng tuyển vào các vị trí phù hợp hơn tại công ty trong tương lai. Chúng tôi hy vọng sẽ có cơ hội được đồng hành cùng Anh/Chị trong những đợt tuyển dụng tiếp theo. Một lần nữa, xin chân thành cảm ơn Anh/Chị và chúc Anh/Chị nhiều thành công trong học tập cũng như sự nghiệp sắp tới. Trân trọng.`;
 
   const handleAction = async (app: JobApplication, action: "accept" | "reject") => {
@@ -403,6 +415,16 @@ export default function JobApplicationsTable() {
                         )}
                         <div>
                           <p className="font-medium text-gray-900">{app.freelancer.fullName}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-blue-600 font-bold flex items-center gap-0.5">
+                              <Icon name="verified_user" size={12} />
+                              {app.freelancer.trustScore || 0}
+                            </span>
+                            <span className={`text-[10px] font-bold flex items-center gap-0.5 ${getUntrustColor(app.freelancer.untrustScore || 0)}`}>
+                              <Icon name="report_problem" size={12} />
+                              {app.freelancer.untrustScore || 0}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -534,6 +556,11 @@ export default function JobApplicationsTable() {
                            <Icon name="verified_user" size={14} className="text-blue-500" />
                            Tín nhiệm: {viewingApp?.freelancer.trustScore || 0}
                         </span>
+                        <div className="h-3 w-px bg-gray-200" />
+                        <span className={`text-[11px] font-bold flex items-center gap-1.5 ${getUntrustColor(viewingApp?.freelancer.untrustScore || 0)}`}>
+                           <Icon name="report_problem" size={14} />
+                           Bất tín nhiệm: {viewingApp?.freelancer.untrustScore || 0} ({getUntrustLabel(viewingApp?.freelancer.untrustScore || 0)})
+                        </span>
                      </div>
                   </div>
                </div>
@@ -613,7 +640,7 @@ export default function JobApplicationsTable() {
                         const renderPoints = (text: string) => text.split("\n").filter(l => l.trim()).map((line, i) => (
                           <div key={i} className="flex gap-2 mb-1.5 last:mb-0 text-[13px] text-gray-700 font-normal leading-relaxed">
                             <span className="font-bold opacity-30 mt-0.5">•</span>
-                            <span>{line.replace(/^- /g, "")}</span>
+                            <span>{line.replace(/^- /g, "").replace(/\*/g, "")}</span>
                           </div>
                         ));
 

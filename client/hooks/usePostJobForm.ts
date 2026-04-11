@@ -54,8 +54,8 @@ function formatLocalDateTime(date: Date): string {
 }
 
 export function usePostJobForm(onSuccess?: () => void) {
-  const { isConnected, address,  connect, taoKyQuy } = useWallet();
-  
+  const { isConnected, address, connect, taoKyQuy } = useWallet();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<"form" | "confirm" | "processing">("form");
 
@@ -188,9 +188,9 @@ export function usePostJobForm(onSuccess?: () => void) {
         ? new Date(Date.now() + deadlineMinutes * 60 * 1000)
         : undefined;
       const applicationDeadline = deadlineDate ? formatLocalDateTime(deadlineDate) : undefined;
-      const submissionDays = formData.submissionUnit === "days" ? formData.submissionValue : Math.ceil(formData.submissionValue / (24 * 60));
-      const reviewDays = formData.reviewUnit === "days" ? formData.reviewValue : Math.ceil(formData.reviewValue / (24 * 60));
-      
+      const submissionDays = toMinutes(formData.submissionValue, formData.submissionUnit);
+      const reviewDays = toMinutes(formData.reviewValue, formData.reviewUnit);
+
       const response = await api.createJob({
         title: formData.title,
         description: formData.description,
@@ -276,7 +276,7 @@ export function usePostJobForm(onSuccess?: () => void) {
       const cid = `job_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
       const result = await taoKyQuy(cid, contractHash, amountInOcta, hanUngTuyen, thoiGianLam, thoiGianDuyet);
-      
+
       if (!result) {
         throw new Error("Không thể tạo công việc");
       }
@@ -284,7 +284,7 @@ export function usePostJobForm(onSuccess?: () => void) {
       const { txHash, escrowId } = result;
       const deadlineDate = new Date(Date.now() + deadlineMinutes * 60 * 1000);
       const applicationDeadline = formatLocalDateTime(deadlineDate);
-      
+
       try {
         const response = await api.createJob({
           title: formData.title,
@@ -296,8 +296,8 @@ export function usePostJobForm(onSuccess?: () => void) {
           budget: formData.budget,
           currency: formData.currency,
           applicationDeadline,
-          submissionDays: formData.submissionUnit === "days" ? formData.submissionValue : Math.ceil(formData.submissionValue / (24 * 60)),
-          reviewDays: formData.reviewUnit === "days" ? formData.reviewValue : Math.ceil(formData.reviewValue / (24 * 60)),
+          submissionDays: submissionMinutes,
+          reviewDays: reviewMinutes,
           location: formData.location,
           categoryId: formData.category ? Number(formData.category) : undefined,
           subCategoryId: formData.subCategory ? Number(formData.subCategory) : undefined,
@@ -316,27 +316,27 @@ export function usePostJobForm(onSuccess?: () => void) {
         } else {
           throw new Error(response.message || "Không thể lưu công việc");
         }
-        } catch (dbError) {
-          const err = dbError as Error;
-          toast.error("Lưu DB thất bại, đang hoàn tiền...");
-          try {
-            await api.cancelEscrow(escrowId);
-            toast.info("Đã hoàn tiền escrow");
-          } catch {
-            toast.error("Không thể hoàn tiền tự động. Escrow ID: " + escrowId);
-          }
-          throw err;
+      } catch (dbError) {
+        const err = dbError as Error;
+        toast.error("Lưu DB thất bại, đang hoàn tiền...");
+        try {
+          await api.cancelEscrow(escrowId);
+          toast.info("Đã hoàn tiền escrow");
+        } catch {
+          toast.error("Không thể hoàn tiền tự động. Escrow ID: " + escrowId);
         }
-      } catch (error) {
-        const err = error as Error;
-        console.error("Error creating job:", err);
-        if (err.message?.includes("User rejected")) {
-          toast.error("Bạn đã hủy thao tác");
-        } else {
-          toast.error(err.message || "Đã có lỗi xảy ra");
-        }
-        setStep("form");
-      } finally {
+        throw err;
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.error("Error creating job:", err);
+      if (err.message?.includes("User rejected")) {
+        toast.error("Bạn đã hủy thao tác");
+      } else {
+        toast.error(err.message || "Đã có lỗi xảy ra");
+      }
+      setStep("form");
+    } finally {
       setIsSubmitting(false);
     }
   };

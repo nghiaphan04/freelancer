@@ -310,6 +310,8 @@ public class AuthService {
                 .bankName(user.getBankName())
                 .hasBankInfo(user.hasBankInfo())
                 .walletAddress(user.getWalletAddress())
+                .trustScore(user.getTrustScore())
+                .untrustScore(user.getUntrustScore())
                 .build();
 
         AuthResponse authRes = AuthResponse.builder()

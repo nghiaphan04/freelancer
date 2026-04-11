@@ -112,10 +112,10 @@ public class JobContractService {
             LocalDateTime now = LocalDateTime.now();
             job.setContractSignedAt(now);
             
-            // FOR TESTING: Use MINUTES instead of days (change back to plusDays for production)
+            // Standardized to Minutes (supports both test minutes and production days)
             int submissionMinutes = job.getSubmissionDays() != null && job.getSubmissionDays() >= 1
                     ? job.getSubmissionDays()
-                    : 2;
+                    : 10080; // Default 7 days in minutes
             LocalDateTime submissionDeadline = now.plusMinutes(submissionMinutes);
             job.setWorkSubmissionDeadline(submissionDeadline);
             

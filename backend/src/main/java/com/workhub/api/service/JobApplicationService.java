@@ -95,12 +95,17 @@ public class JobApplicationService {
         }
 
         JobApplication saved;
+        String aiRejectionReason = "Do nhà tuyển dụng sử dụng chức năng lọc CV tự động bởi AI, CV của bạn chưa phù hợp với nhu cầu của công việc.";
+        
         if (existingApplication != null && existingApplication.canReapply()) {
             existingApplication.reapply(req.getCoverLetter());
             existingApplication.setStatus(initialStatus);
             existingApplication.setWalletAddress(req.getWalletAddress());
             existingApplication.setAiScore(req.getAiScore());
             existingApplication.setAiExplanation(req.getAiExplanation());
+            if (initialStatus == EApplicationStatus.REJECTED) {
+                existingApplication.setRejectionReason(aiRejectionReason);
+            }
             saved = jobApplicationRepository.save(existingApplication);
         } else {
             JobApplication application = JobApplication.builder()
@@ -111,6 +116,7 @@ public class JobApplicationService {
                     .status(initialStatus)
                     .aiScore(req.getAiScore())
                     .aiExplanation(req.getAiExplanation())
+                    .rejectionReason(initialStatus == EApplicationStatus.REJECTED ? aiRejectionReason : null)
                     .build();
             saved = jobApplicationRepository.save(application);
 
@@ -128,7 +134,7 @@ public class JobApplicationService {
             jobHistoryService.logHistory(job, user, EJobHistoryAction.APPLICATION_SUBMITTED,
                     "Đã nộp đơn (bị loại bởi bộ lọc AI do điểm đánh giá " + req.getAiScore() + " thấp hơn ngưỡng)");
             
-            notificationService.notifyApplicationRejected(user, job);
+            notificationService.notifyApplicationRejected(user, job, saved.getRejectionReason());
         } else {
             jobHistoryService.logHistory(job, user, EJobHistoryAction.APPLICATION_SUBMITTED,
                     "Đã nộp đơn ứng tuyển");

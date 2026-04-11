@@ -111,11 +111,11 @@ public class Job {
 
     @Column(name = "submission_days")
     @Builder.Default
-    private Integer submissionDays = 1;
+    private Integer submissionDays = 10080; // Total duration in MINUTES (Default 7 days)
 
     @Column(name = "review_days")
     @Builder.Default
-    private Integer reviewDays = 2;
+    private Integer reviewDays = 2880; // Total duration in MINUTES (Default 2 days)
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

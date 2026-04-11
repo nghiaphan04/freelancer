@@ -110,6 +110,11 @@ public class UserController {
                    .bankName(user.getBankName());
         }
 
-        return builder.build();
+        System.out.println("DEBUG: User ID " + user.getId() + " - Trust: " + user.getTrustScore() + ", Untrust: " + user.getUntrustScore());
+
+        return builder
+                .trustScore(user.getTrustScore() != null ? user.getTrustScore() : 0)
+                .untrustScore(user.getUntrustScore() != null ? user.getUntrustScore() : 0)
+                .build();
     }
 }

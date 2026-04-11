@@ -51,10 +51,10 @@ public class JobWorkService {
         jobApplicationRepository.save(application);
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        // FOR TESTING: Use MINUTES instead of days (change back to plusDays for production)
+        // Standardized to Minutes (supports both test minutes and production days)
         int reviewMinutes = job.getReviewDays() != null && job.getReviewDays() >= 1
                 ? job.getReviewDays()
-                : 2;
+                : 2880; // Default 2 days in minutes
         job.setWorkSubmissionDeadline(null);
         job.setWorkSubmittedAt(now);
         job.setWorkReviewDeadline(now.plusMinutes(reviewMinutes));
@@ -112,6 +112,12 @@ public class JobWorkService {
         jobHistoryService.logHistory(job, employer, EJobHistoryAction.JOB_COMPLETED,
                 "Công việc hoàn thành thành công");
 
+        // Increment trust scores
+        freelancer.addTrustScore(5);
+        employer.addTrustScore(5);
+        userService.save(freelancer);
+        userService.save(employer);
+
         notificationService.notifyWorkApproved(freelancer, job);
         notificationService.notifyPaymentReleased(freelancer, job, payment.toPlainString() + " " + job.getCurrency());
         notificationService.notifyJobCompleted(freelancer, job);
@@ -145,10 +151,10 @@ public class JobWorkService {
         jobApplicationRepository.save(application);
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        // FOR TESTING: Use MINUTES instead of days (change back to plusDays for production)
+        // Standardized to Minutes (supports both test minutes and production days)
         int submissionMinutes = job.getSubmissionDays() != null && job.getSubmissionDays() >= 1
                 ? job.getSubmissionDays()
-                : 2;
+                : 10080; // Default 7 days in minutes
         job.setWorkReviewDeadline(null);
         job.setWorkSubmittedAt(null);
         job.setWorkSubmissionDeadline(now.plusMinutes(submissionMinutes));

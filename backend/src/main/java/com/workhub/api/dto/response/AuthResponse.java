@@ -51,5 +51,9 @@ public class AuthResponse {
         private String bankName;           // private - chỉ admin và chính user thấy
         private Boolean hasBankInfo;       // public - cho biết đã có thông tin ngân hàng chưa
         private String walletAddress;      // public - địa chỉ ví Aptos của user
+        @Builder.Default
+        private Integer trustScore = 0;
+        @Builder.Default
+        private Integer untrustScore = 0;
     }
 }

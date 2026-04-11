@@ -142,6 +142,7 @@ export const api = {
     keyword?: string;
     company?: string;
     location?: string;
+    category?: string;
     skills?: string[];
     workType?: string;
     complexity?: string;
@@ -156,6 +157,7 @@ export const api = {
     if (params.keyword) query.append("keyword", params.keyword);
     if (params.company) query.append("company", params.company);
     if (params.location) query.append("location", params.location);
+    if (params.category) query.append("category", params.category);
     if (params.skills) params.skills.forEach((skill) => query.append("skills", skill));
     if (params.workType) query.append("workType", params.workType);
     if (params.complexity) query.append("complexity", params.complexity);
@@ -196,6 +198,10 @@ export const api = {
   // Đăng lại job đã hủy
   repostJob: (id: number, data: { saveAsDraft: boolean; escrowId?: number; walletAddress?: string; txHash?: string; contractHash?: string }) =>
     request<Job>(`/api/jobs/${id}/repost`, { method: "POST", body: JSON.stringify(data) }),
+
+  // Rút khỏi job (Freelancer bỏ việc)
+  quitJob: (id: number) =>
+    request<Job>(`/api/jobs/${id}/quit`, { method: "POST" }),
 
   // Job Applications
   applyJob: (jobId: number, data: { coverLetter?: string; walletAddress: string; cvFileId?: number }) =>
