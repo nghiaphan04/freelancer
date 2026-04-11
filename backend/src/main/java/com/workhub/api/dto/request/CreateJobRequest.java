@@ -73,4 +73,8 @@ public class CreateJobRequest {
     private String txHash;
 
     private Boolean saveAsDraft;
+
+    private Boolean aiThresholdEnabled;
+
+    private Double aiThresholdScore;
 }

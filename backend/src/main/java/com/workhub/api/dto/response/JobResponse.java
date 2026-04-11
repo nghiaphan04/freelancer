@@ -42,6 +42,8 @@ public class JobResponse {
     private LocalDateTime workReviewDeadline;
     private Integer viewCount;
     private Integer applicationCount;
+    private Boolean aiThresholdEnabled;
+    private Double aiThresholdScore;
     private EmployerResponse employer;
     private FreelancerResponse freelancer;
     private LocalDateTime createdAt;

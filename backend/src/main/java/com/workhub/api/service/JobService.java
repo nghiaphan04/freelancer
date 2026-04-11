@@ -133,6 +133,11 @@ public class JobService {
             job.setEscrowTxHash(req.getTxHash());
         }
 
+        if (req.getAiThresholdEnabled() != null) {
+            job.setAiThresholdEnabled(req.getAiThresholdEnabled());
+            job.setAiThresholdScore(req.getAiThresholdScore());
+        }
+
         Job savedJob = jobRepository.save(job);
 
         return ApiResponse.success(isDraft ? "Đã lưu bản nháp" : "Tạo job thành công", buildJobResponse(savedJob));
@@ -355,6 +360,11 @@ public class JobService {
 
         if (req.getWalletAddress() != null && !req.getWalletAddress().isBlank()) {
             job.setEmployerWalletAddress(req.getWalletAddress());
+        }
+
+        if (req.getAiThresholdEnabled() != null) {
+            job.setAiThresholdEnabled(req.getAiThresholdEnabled());
+            job.setAiThresholdScore(req.getAiThresholdScore());
         }
 
         String message = "Cập nhật job thành công";
@@ -720,6 +730,8 @@ public class JobService {
                 .workReviewDeadline(job.getWorkReviewDeadline())
                 .viewCount(job.getViewCount())
                 .applicationCount(job.getApplicationCount())
+                .aiThresholdEnabled(job.getAiThresholdEnabled())
+                .aiThresholdScore(job.getAiThresholdScore())
                 .employer(employerResponse)
                 .freelancer(freelancerResponse)
                 .createdAt(job.getCreatedAt())

@@ -35,6 +35,8 @@ public class JobApplicationService {
     private final NotificationService notificationService;
     private final JobContractService jobContractService;
     private final FileUploadRepository fileUploadRepository;
+    private final PdfParsingService pdfParsingService;
+    private final GeminiService geminiService;
 
     @Transactional
     public ApiResponse<JobApplicationResponse> applyJob(Long jobId, Long userId, ApplyJobRequest req) {
@@ -74,10 +76,31 @@ public class JobApplicationService {
             throw FileUploadException.accessDenied();
         }
 
+        EApplicationStatus initialStatus = EApplicationStatus.PENDING;
+        
+        if (Boolean.TRUE.equals(job.getAiThresholdEnabled())) {
+            String cvText = pdfParsingService.extractTextFromUrl(cvFile.getSecureUrl());
+            GeminiService.GeminiEvaluationResult eval = geminiService.evaluateResume(cvText, cvFile.getSecureUrl(), job);
+            
+            if (eval != null) {
+                req.setAiScore(eval.getOverallScore());
+                req.setAiExplanation(eval.getExplanation());
+                
+                if (eval.getOverallScore() != null && 
+                    job.getAiThresholdScore() != null && 
+                    eval.getOverallScore() < job.getAiThresholdScore()) {
+                    initialStatus = EApplicationStatus.REJECTED;
+                }
+            }
+        }
+
         JobApplication saved;
         if (existingApplication != null && existingApplication.canReapply()) {
             existingApplication.reapply(req.getCoverLetter());
+            existingApplication.setStatus(initialStatus);
             existingApplication.setWalletAddress(req.getWalletAddress());
+            existingApplication.setAiScore(req.getAiScore());
+            existingApplication.setAiExplanation(req.getAiExplanation());
             saved = jobApplicationRepository.save(existingApplication);
         } else {
             JobApplication application = JobApplication.builder()
@@ -85,7 +108,9 @@ public class JobApplicationService {
                     .freelancer(user)
                     .coverLetter(req.getCoverLetter())
                     .walletAddress(req.getWalletAddress())
-                    .status(EApplicationStatus.PENDING)
+                    .status(initialStatus)
+                    .aiScore(req.getAiScore())
+                    .aiExplanation(req.getAiExplanation())
                     .build();
             saved = jobApplicationRepository.save(application);
 
@@ -99,10 +124,17 @@ public class JobApplicationService {
             fileUploadRepository.save(cvFile);
         }
 
-        jobHistoryService.logHistory(job, user, EJobHistoryAction.APPLICATION_SUBMITTED,
-                "Đã nộp đơn ứng tuyển");
-
-        notificationService.notifyNewApplication(job.getEmployer(), job, user);
+        if (initialStatus == EApplicationStatus.REJECTED) {
+            jobHistoryService.logHistory(job, user, EJobHistoryAction.APPLICATION_SUBMITTED,
+                    "Đã nộp đơn (bị loại bởi bộ lọc AI do điểm đánh giá " + req.getAiScore() + " thấp hơn ngưỡng)");
+            
+            notificationService.notifyApplicationRejected(user, job);
+        } else {
+            jobHistoryService.logHistory(job, user, EJobHistoryAction.APPLICATION_SUBMITTED,
+                    "Đã nộp đơn ứng tuyển");
+            
+            notificationService.notifyNewApplication(job.getEmployer(), job, user);
+        }
 
         return ApiResponse.success("Ứng tuyển thành công", buildApplicationResponse(saved));
     }
@@ -243,7 +275,7 @@ public class JobApplicationService {
     }
 
     @Transactional
-    public ApiResponse<JobApplicationResponse> rejectApplication(Long applicationId, Long userId) {
+    public ApiResponse<JobApplicationResponse> rejectApplication(Long applicationId, Long userId, String reason) {
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn ứng tuyển"));
 
@@ -255,16 +287,16 @@ public class JobApplicationService {
             throw new IllegalStateException("Chỉ có thể từ chối đơn đang chờ xử lý");
         }
 
-        application.reject();
+        application.reject(reason);
         jobApplicationRepository.save(application);
 
         Job job = application.getJob();
         User employer = userService.getById(userId);
         User freelancer = application.getFreelancer();
         jobHistoryService.logHistory(job, employer, EJobHistoryAction.APPLICATION_REJECTED,
-                "Đã từ chối người làm " + freelancer.getFullName());
+                "Đã từ chối người làm " + freelancer.getFullName() + (reason != null ? ". Lý do: " + reason : ""));
 
-        notificationService.notifyApplicationRejected(freelancer, job);
+        notificationService.notifyApplicationRejected(freelancer, job, reason);
 
         return ApiResponse.success("Đã từ chối đơn ứng tuyển", buildApplicationResponse(application));
     }
@@ -369,6 +401,9 @@ public class JobApplicationService {
                 .walletAddress(application.getWalletAddress())
                 .cvFileUrl(cvFileUrl)
                 .cvFileName(cvFileName)
+                .aiScore(application.getAiScore())
+                .aiExplanation(application.getAiExplanation())
+                .rejectionReason(application.getRejectionReason())
                 .createdAt(application.getCreatedAt())
                 .updatedAt(application.getUpdatedAt())
                 .build();

@@ -4,6 +4,7 @@ import com.workhub.api.dto.request.ApplyJobRequest;
 import com.workhub.api.dto.request.CreateJobContractRequest;
 import com.workhub.api.dto.request.CreateJobRequest;
 import com.workhub.api.dto.request.JobSearchRequest;
+import com.workhub.api.dto.request.RejectApplicationRequest;
 import com.workhub.api.dto.request.RepostJobRequest;
 import com.workhub.api.dto.request.RevisionRequest;
 import com.workhub.api.dto.request.SubmitWorkRequest;
@@ -228,9 +229,11 @@ public class JobController {
     @PreAuthorize("hasRole('EMPLOYER')")
     public ResponseEntity<ApiResponse<JobApplicationResponse>> rejectApplication(
             @PathVariable Long applicationId,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody(required = false) RejectApplicationRequest req) {
 
-        return ResponseEntity.ok(jobApplicationService.rejectApplication(applicationId, userDetails.getId()));
+        String reason = req != null ? req.getReason() : null;
+        return ResponseEntity.ok(jobApplicationService.rejectApplication(applicationId, userDetails.getId(), reason));
     }
 
     @PutMapping("/{id}/applications/batch-reject")

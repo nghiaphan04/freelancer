@@ -11,4 +11,8 @@ public class ApplyJobRequest {
     private String walletAddress;
 
     private Long cvFileId;
+
+    private Double aiScore;
+
+    private String aiExplanation;
 }

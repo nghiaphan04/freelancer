@@ -68,16 +68,24 @@ public class NotificationService {
     }
 
     @Transactional
-    public void notifyApplicationRejected(User freelancer, Job job) {
+    public void notifyApplicationRejected(User freelancer, Job job, String reason) {
+        String message = "Đơn ứng tuyển của bạn cho công việc \"" + job.getTitle() + "\" đã bị từ chối.";
+        if (reason != null && !reason.isBlank()) {
+            message += " Lý do: " + reason;
+        }
         Notification notification = Notification.builder()
                 .user(freelancer)
                 .type(ENotificationType.APPLICATION_REJECTED)
                 .title("Đơn ứng tuyển bị từ chối")
-                .message("Đơn ứng tuyển của bạn cho công việc \"" + job.getTitle() + "\" đã bị từ chối.")
+                .message(message)
                 .referenceId(job.getId())
                 .referenceType("JOB")
                 .build();
         notificationRepository.save(notification);
+    }
+
+    public void notifyApplicationRejected(User freelancer, Job job) {
+        this.notifyApplicationRejected(freelancer, job, null);
     }
 
     @Transactional

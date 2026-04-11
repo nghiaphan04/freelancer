@@ -141,7 +141,11 @@ public class Job {
     @Column(name = "application_count", nullable = false)
     @Builder.Default
     private Integer applicationCount = 0;
+    @Column(name = "ai_threshold_enabled")
+    private Boolean aiThresholdEnabled;
 
+    @Column(name = "ai_threshold_score")
+    private Double aiThresholdScore;
     @Column(name = "work_submission_deadline")
     private LocalDateTime workSubmissionDeadline;
 
@@ -369,6 +373,21 @@ public class Job {
 
     public void clearPendingBlockchainAction() {
         this.pendingBlockchainAction = EPendingBlockchainAction.NONE;
+    }
+    public Boolean getAiThresholdEnabled() {
+        return this.aiThresholdEnabled;
+    }
+
+    public void setAiThresholdEnabled(Boolean aiThresholdEnabled) {
+        this.aiThresholdEnabled = aiThresholdEnabled;
+    }
+
+    public Double getAiThresholdScore() {
+        return this.aiThresholdScore;
+    }
+
+    public void setAiThresholdScore(Double aiThresholdScore) {
+        this.aiThresholdScore = aiThresholdScore;
     }
 
     public boolean hasPendingBlockchainAction() {

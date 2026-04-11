@@ -69,4 +69,8 @@ public class UpdateJobRequest {
     private String status;
 
     private String contractHash;  // Hash từ frontend để đảm bảo khớp với blockchain
+
+    private Boolean aiThresholdEnabled;
+
+    private Double aiThresholdScore;
 }

@@ -61,6 +61,15 @@ public class JobApplication {
     @Column(name = "accepted_at")
     private LocalDateTime acceptedAt;
 
+    @Column(name = "ai_score")
+    private Double aiScore;
+
+    @Column(name = "ai_explanation", columnDefinition = "TEXT")
+    private String aiExplanation;
+
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -74,8 +83,13 @@ public class JobApplication {
         this.acceptedAt = LocalDateTime.now();
     }
 
-    public void reject() {
+    public void reject(String reason) {
         this.status = EApplicationStatus.REJECTED;
+        this.rejectionReason = reason;
+    }
+
+    public void reject() {
+        this.reject(null);
     }
 
     public void withdraw() {
@@ -168,5 +182,13 @@ public class JobApplication {
 
     public void setWalletAddress(String walletAddress) {
         this.walletAddress = walletAddress;
+    }
+
+    public void setAiScore(Double aiScore) {
+        this.aiScore = aiScore;
+    }
+
+    public void setAiExplanation(String aiExplanation) {
+        this.aiExplanation = aiExplanation;
     }
 }

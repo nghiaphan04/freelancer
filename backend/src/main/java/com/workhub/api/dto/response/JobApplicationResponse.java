@@ -26,6 +26,9 @@ public class JobApplicationResponse {
     private String walletAddress;
     private String cvFileUrl;
     private String cvFileName;
+    private Double aiScore;
+    private String aiExplanation;
+    private String rejectionReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
