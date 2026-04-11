@@ -566,12 +566,25 @@ export const api = {
     formData.append("file", file);
     formData.append("usage", usage);
     
+    const token = getAccessToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    
     const res = await fetch(`${API_URL}/api/files/image`, {
       method: "POST",
       credentials: "include",
+      headers,
       body: formData,
     });
-    return res.json();
+    
+    const json = await res.json();
+    if (!res.ok) {
+      console.error(`API Error [${res.status}] /api/files/image:`, json);
+      throw new Error(json.message || 'Upload image failed');
+    }
+    return json;
   },
 
   // Upload document (max 5MB)
@@ -580,12 +593,25 @@ export const api = {
     formData.append("file", file);
     formData.append("usage", usage);
     
+    const token = getAccessToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    
     const res = await fetch(`${API_URL}/api/files/document`, {
       method: "POST",
       credentials: "include",
+      headers,
       body: formData,
     });
-    return res.json();
+    
+    const json = await res.json();
+    if (!res.ok) {
+      console.error(`API Error [${res.status}] /api/files/document:`, json);
+      throw new Error(json.message || 'Upload document failed');
+    }
+    return json;
   },
 
   // Upload file (auto detect type)
@@ -594,12 +620,25 @@ export const api = {
     formData.append("file", file);
     formData.append("usage", usage);
     
+    const token = getAccessToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    
     const res = await fetch(`${API_URL}/api/files`, {
       method: "POST",
       credentials: "include",
+      headers,
       body: formData,
     });
-    return res.json();
+    
+    const json = await res.json();
+    if (!res.ok) {
+      console.error(`API Error [${res.status}] /api/files:`, json);
+      throw new Error(json.message || 'Upload file failed');
+    }
+    return json;
   },
 
   // Delete file
