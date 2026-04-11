@@ -139,16 +139,16 @@ export default function JobApplyDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent showCloseButton={!isLoading && !isUploading}>
+    <Dialog open={open} onOpenChange={handleClose} >
+      <DialogContent className="min-w-4xl" showCloseButton={!isLoading && !isUploading}>
         <DialogHeader>
           <DialogTitle>Ứng tuyển công việc</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="truncate">
             Gửi đơn ứng tuyển cho công việc &quot;{jobTitle}&quot;
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
+        <div className="py-4 space-y-4 ">
           {/* Wallet Connect Prompt - Only show when not connected */}
           {!isWalletConnected && (
             <div className="p-3 rounded-lg border bg-amber-50 border-amber-200">
@@ -187,8 +187,13 @@ export default function JobApplyDialog({
                   <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
                     <Icon name="picture_as_pdf" size={22} className="text-red-500" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{cvFile.name}</p>
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <p 
+                      className="text-sm font-medium text-gray-800 truncate"
+                      title={cvFile.name}
+                    >
+                      {cvFile.name}
+                    </p>
                     <p className="text-xs text-gray-500">
                       {formatFileSize(cvFile.size)}
                       {isUploading && " • Đang tải lên..."}

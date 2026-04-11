@@ -246,6 +246,40 @@ export default function BasicInfoSection({
             <p className="text-xs text-gray-400 mt-1">Chọn tags liên quan đến công việc</p>
           </div>
         )}
+
+        {/* AI CV Filtering */}
+        <div className="pt-4 border-t mt-4">
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="aiThresholdEnabled"
+              checked={formData.aiThresholdEnabled}
+              onChange={onChange}
+              disabled={disabled}
+              className="w-4 h-4 text-[#00b14f] focus:ring-[#00b14f] border-gray-300 rounded"
+            />
+            Bật tự động phân tích và lọc CV
+          </label>
+          
+          {formData.aiThresholdEnabled && (
+            <div className="mt-3 sm:w-1/2 pl-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ngưỡng điểm tối thiểu (0-100) <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="number"
+                name="aiThresholdScore"
+                value={formData.aiThresholdScore ?? ""}
+                onChange={onChange}
+                disabled={disabled}
+                min={0}
+                max={100}
+                placeholder="VD: 70"
+              />
+              <p className="text-xs text-gray-500 mt-1">CV có điểm phân tích thấp hơn ngưỡng này sẽ tự động bị từ chối</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

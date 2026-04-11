@@ -118,6 +118,7 @@ export default function JobDetailsSection({
             </select>
           </div>
         </div>
+
       </div>
     </div>
   );

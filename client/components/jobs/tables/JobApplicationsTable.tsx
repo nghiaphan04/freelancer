@@ -2,10 +2,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter, notFound } from "next/navigation";
+import { useParams, notFound } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { api, JobApplication, ApplicationStatus, CVScoreResult } from "@/lib/api";
+import { api, JobApplication, ApplicationStatus } from "@/lib/api";
 import { useWallet } from "@/context/WalletContext";
 import { Job } from "@/types/job";
 import Icon from "@/components/ui/Icon";
@@ -21,6 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
   PENDING: { label: "Chờ duyệt", color: "bg-gray-100 text-gray-600" },
@@ -39,9 +43,8 @@ const STATUS_OPTIONS: { value: ApplicationStatus | ""; label: string }[] = [
 
 export default function JobApplicationsTable() {
   const params = useParams();
-  const router = useRouter();
   const jobId = Number(params.id);
-  const { isConnected, connect, isConnecting, ganNguoiLam } = useWallet();
+  const { isConnected, connect, ganNguoiLam } = useWallet();
 
   const [job, setJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -54,13 +57,9 @@ export default function JobApplicationsTable() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"accept" | "reject" | null>(null);
 
-  const [showSkillsDialog, setShowSkillsDialog] = useState(false);
-  const [cvScores, setCvScores] = useState<Record<number, CVScoreResult>>({});
-  const [isScoring, setIsScoring] = useState(false);
-  const [scoringApps, setScoringApps] = useState<Set<number>>(new Set());
-  const [showScoreColumn, setShowScoreColumn] = useState(false);
-  const [showCoverLetterDialog, setShowCoverLetterDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [viewingApp, setViewingApp] = useState<JobApplication | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -118,7 +117,7 @@ export default function JobApplicationsTable() {
       } else {
         toast.error(res.message || "Không thể thực hiện thao tác");
       }
-    } catch (error) {
+    } catch {
       toast.error("Đã có lỗi xảy ra");
     } finally {
       setSelectedIds(new Set());
@@ -127,78 +126,7 @@ export default function JobApplicationsTable() {
     }
   };
 
-  // CV Scoring Function
-  const handleScoreCVs = async () => {
-    if (!job) return;
-    
-    const appsWithCV = applications.filter(app => app.cvFileUrl && app.status === "PENDING");
-    if (appsWithCV.length === 0) {
-      toast.info("Không có CV nào để chấm điểm");
-      return;
-    }
 
-    setIsScoring(true);
-    setShowScoreColumn(true);
-    const scores: Record<number, CVScoreResult> = {};
-    const jobText = `${job.title}\n${job.description}\n${job.requirements || ""}`;
-
-    try {
-      for (const app of appsWithCV) {
-        try {
-          setScoringApps(prev => new Set(prev).add(app.id));
-          
-          // Download CV file
-          const response = await fetch(app.cvFileUrl!);
-          const blob = await response.blob();
-          const file = new File([blob], app.cvFileName || "cv.pdf", { type: "application/pdf" });
-
-          // Upload to scoring service
-          const uploadRes = await api.uploadCVToScoring(file);
-          
-          // Create job entry in Python service
-          const jobRes = await fetch(`${process.env.NEXT_PUBLIC_CV_SCORING_URL || "http://localhost:8081"}/api/job/create?job_text=${encodeURIComponent(jobText)}`, {
-            method: "POST",
-          });
-          const jobData = await jobRes.json();
-          
-          // Analyze CV
-          const score = await api.analyzeCV(uploadRes.cv_id, jobData.job_id);
-          scores[app.id] = score;
-          
-          // Update state ngay sau mỗi CV
-          setCvScores(prev => ({ ...prev, [app.id]: score }));
-        } catch (err) {
-          console.error(`Failed to score CV for ${app.freelancer.fullName}:`, err);
-        } finally {
-          setScoringApps(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(app.id);
-            return newSet;
-          });
-        }
-      }
-
-      setCvScores(scores);
-      
-      // Sort applications by score
-      const scoredApps = [...applications].sort((a, b) => {
-        const scoreA = scores[a.id]?.final_score || 0;
-        const scoreB = scores[b.id]?.final_score || 0;
-        return scoreB - scoreA;
-      });
-      
-      setFilteredApplications(scoredApps);
-      toast.success(`Đã chấm điểm ${Object.keys(scores).length} CV`);
-    } catch (error) {
-      toast.error("Chấm điểm CV thất bại");
-    } finally {
-      setIsScoring(false);
-    }
-  };
-
-  const getScoreColor = (score: number, isHighest: boolean) => {
-    return isHighest ? "text-green-600" : "text-red-600";
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -239,6 +167,8 @@ export default function JobApplicationsTable() {
     }
   }, [statusFilter, applications]);
 
+  const REJECTION_TEMPLATE = `Trước hết, Công ty chúng tôi xin chân thành cảm ơn Anh/Chị đã quan tâm và nộp hồ sơ ứng tuyển vào vị trí tại công ty. Chúng tôi đồng thời xin lỗi vì đã để Anh/Chị chờ đợi trong quá trình xem xét và đánh giá hồ sơ. Sau khi cân nhắc kỹ lưỡng, chúng tôi rất tiếc phải thông báo rằng hồ sơ của Anh/Chị hiện chưa phù hợp với yêu cầu của vị trí tuyển dụng ở thời điểm này, do số lượng hồ sơ ứng tuyển lớn và mức độ cạnh tranh cao. Tuy nhiên, chúng tôi đánh giá cao sự quan tâm và thời gian Anh/Chị đã dành cho cơ hội này. Rất mong Anh/Chị sẽ tiếp tục theo dõi và ứng tuyển vào các vị trí phù hợp hơn tại công ty trong tương lai. Chúng tôi hy vọng sẽ có cơ hội được đồng hành cùng Anh/Chị trong những đợt tuyển dụng tiếp theo. Một lần nữa, xin chân thành cảm ơn Anh/Chị và chúc Anh/Chị nhiều thành công trong học tập cũng như sự nghiệp sắp tới. Trân trọng.`;
+
   const handleAction = async (app: JobApplication, action: "accept" | "reject") => {
     if (action === "accept" && !isConnected) {
       const connected = await connect();
@@ -246,6 +176,12 @@ export default function JobApplicationsTable() {
         toast.error("Vui lòng kết nối ví để chấp nhận người làm");
         return;
       }
+    }
+    
+    if (action === "reject") {
+      setRejectionReason(REJECTION_TEMPLATE);
+    } else {
+      setRejectionReason("");
     }
     
     setSelectedApp(app);
@@ -297,8 +233,8 @@ export default function JobApplicationsTable() {
         } else {
           toast.error(res.message || "Thao tác thất bại");
         }
-      } else {
-        const res = await api.rejectApplication(jobId, selectedApp.id);
+      } else if (confirmAction === "reject") {
+        const res = await api.rejectApplication(jobId, selectedApp.id, rejectionReason);
         if (res.status === "SUCCESS") {
           toast.success("Đã từ chối người làm");
           setApplications((apps) =>
@@ -308,6 +244,7 @@ export default function JobApplicationsTable() {
                 : a
             )
           );
+          setRejectionReason(""); // Reset reason on success
           setShowConfirmDialog(false);
         } else {
           toast.error(res.message || "Thao tác thất bại");
@@ -392,25 +329,7 @@ export default function JobApplicationsTable() {
                 Từ chối {selectedPendingIds.length} người
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
-              onClick={handleScoreCVs}
-              disabled={isScoring}
-            >
-              {isScoring ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2" />
-                  Đang chấm điểm...
-                </>
-              ) : (
-                <>
-                  <Icon name="analytics" size={16} />
-                  Chấm điểm CV bởi AI
-                </>
-              )}
-            </Button>
+
           </div>
           <span className="text-sm text-gray-500">
             Tổng: {filteredApplications.length} người làm
@@ -448,9 +367,7 @@ export default function JobApplicationsTable() {
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày ứng tuyển</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                  {showScoreColumn && (
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Điểm CV</th>
-                  )}
+
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -486,25 +403,6 @@ export default function JobApplicationsTable() {
                         )}
                         <div>
                           <p className="font-medium text-gray-900">{app.freelancer.fullName}</p>
-                          <div className="flex items-center gap-2">
-                            {app.coverLetter && (
-                              <button
-                                onClick={() => { setViewingApp(app); setShowCoverLetterDialog(true); }}
-                                className="text-xs text-[#00b14f] hover:underline"
-                              >
-                                Xem thư ứng tuyển
-                              </button>
-                            )}
-                            {app.cvFileUrl && (
-                              <button
-                                onClick={() => handleDownload(app.cvFileUrl!, app.cvFileName || "CV_UngVien.pdf")}
-                                className="inline-flex items-center gap-0.5 text-xs text-red-500 hover:underline cursor-pointer"
-                              >
-                                <Icon name="picture_as_pdf" size={14} />
-                                Xem CV
-                              </button>
-                            )}
-                          </div>
                         </div>
                       </div>
                     </td>
@@ -519,12 +417,9 @@ export default function JobApplicationsTable() {
                     </td>
                     <td className="px-4 py-3">
                       {app.freelancer.skills && app.freelancer.skills.length > 0 ? (
-                        <button
-                          onClick={() => { setViewingApp(app); setShowSkillsDialog(true); }}
-                          className="text-[#00b14f] hover:underline text-sm text-left"
-                        >
+                        <span className="text-sm text-gray-600">
                           {app.freelancer.skills.length} kỹ năng
-                        </button>
+                        </span>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
@@ -537,42 +432,15 @@ export default function JobApplicationsTable() {
                     <td className="px-4 py-3 text-gray-500">
                       {formatDate(app.createdAt)}
                     </td>
-                    <td className="px-4 py-3">
-                      {app.status === "PENDING" ? (
-                        <div className="flex items-center justify-center gap-3">
-                          <button
-                            onClick={() => handleAction(app, "accept")}
-                            disabled={processingId === app.id || !app.walletAddress}
-                            className="text-[#00b14f] hover:underline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={!app.walletAddress ? "Người làm chưa có địa chỉ ví" : ""}
-                          >
-                            Duyệt
-                          </button>
-                          <button
-                            onClick={() => handleAction(app, "reject")}
-                            disabled={processingId === app.id}
-                            className="text-red-600 hover:underline text-sm disabled:opacity-50"
-                          >
-                            Từ chối
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-center block">-</span>
-                      )}
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => { setViewingApp(app); setShowDetailDialog(true); }}
+                        className="text-[#00b14f] hover:underline text-sm font-medium"
+                      >
+                        Xem chi tiết
+                      </button>
                     </td>
-                    {showScoreColumn && (
-                      <td className="px-4 py-3 text-center">
-                        {scoringApps.has(app.id) ? (
-                          <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                        ) : cvScores[app.id] ? (
-                          <span className={`font-bold text-lg ${getScoreColor(cvScores[app.id].final_score, cvScores[app.id].final_score === Math.max(...Object.values(cvScores).map(s => s.final_score)))}`}>
-                            {cvScores[app.id].final_score.toFixed(1)}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
-                      </td>
-                    )}
+
                   </tr>
                 ))}
               </tbody>
@@ -584,6 +452,7 @@ export default function JobApplicationsTable() {
       {/* Confirm Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={(open) => !processingId && setShowConfirmDialog(open)}>
         <DialogContent 
+          className="sm:max-w-2xl"
           onPointerDownOutside={(e) => processingId && e.preventDefault()} 
           onEscapeKeyDown={(e) => processingId && e.preventDefault()}
         >
@@ -592,11 +461,25 @@ export default function JobApplicationsTable() {
               {confirmAction === "accept" ? "Chấp nhận người làm" : "Từ chối người làm"}
             </DialogTitle>
             <DialogDescription>
-              {confirmAction === "accept"
-                ? `Bạn có chắc muốn chấp nhận "${selectedApp?.freelancer.fullName}" cho công việc này?`
-                : `Bạn có chắc muốn từ chối "${selectedApp?.freelancer.fullName}"?`}
-            </DialogDescription>
-          </DialogHeader>
+            {confirmAction === "accept"
+              ? `Bạn có chắc chắn muốn chấp nhận ${selectedApp?.freelancer.fullName} cho công việc này? Các hồ sơ khác đang chờ sẽ tự động bị từ chối.`
+              : `Bạn có chắc chắn muốn từ chối hồ sơ của ${selectedApp?.freelancer.fullName}?`}
+          </DialogDescription>
+
+          {confirmAction === "reject" && (
+            <div className="space-y-2 py-4">
+              <Label htmlFor="rejection-reason" className="text-sm font-bold text-gray-700">Lý do từ chối (không bắt buộc)</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Ví dụ: Kỹ năng của bạn chưa phù hợp với yêu cầu hiện tại..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px] text-sm"
+              />
+              <p className="text-[11px] text-gray-500 italic">Lý do này sẽ được gửi đến ứng viên để họ biết lý do không được chọn.</p>
+            </div>
+          )}
+        </DialogHeader>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={!!processingId}>
@@ -607,7 +490,7 @@ export default function JobApplicationsTable() {
               disabled={!!processingId}
               className={confirmAction === "accept" ? "bg-[#00b14f] hover:bg-[#009643]" : "bg-gray-600 hover:bg-gray-700"}
             >
-              {processingId ? (
+        {processingId ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   Đang xử lý...
@@ -620,98 +503,161 @@ export default function JobApplicationsTable() {
         </DialogContent>
       </Dialog>
 
-      {/* Skills Dialog */}
-      <Dialog open={showSkillsDialog} onOpenChange={setShowSkillsDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Kỹ năng của {viewingApp?.freelancer.fullName}</DialogTitle>
-            <DialogDescription>
-              Danh sách kỹ năng của người làm
-            </DialogDescription>
+      {/* MODERN JOB APPLICATION DETAIL DIALOG */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="sm:max-w-6xl h-[90vh] sm:h-[80vh] grid grid-rows-[auto_1fr_auto] p-0 overflow-hidden shadow-xl border-none">
+          <DialogHeader className="p-4 border-b bg-white">
+             <DialogTitle className="text-sm font-bold text-black uppercase tracking-widest text-center shadow-none">Chi tiết hồ sơ ứng tuyển</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            {viewingApp?.freelancer.skills && viewingApp.freelancer.skills.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {viewingApp.freelancer.skills.map((skill) => (
-                  <span key={skill} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500">Chưa có kỹ năng nào</p>
-            )}
+
+          <div className="overflow-y-auto min-h-0 bg-white">
+            <div className="p-6 space-y-6 pb-8">
+               {/* Candidate Brief Profile */}
+               <div className="flex items-center gap-4 p-1">
+                  {viewingApp?.freelancer.avatarUrl ? (
+                    <Avatar className="w-14 h-14 border shadow-sm">
+                      <AvatarImage src={viewingApp.freelancer.avatarUrl} />
+                      <AvatarFallback>{viewingApp.freelancer.fullName?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <WalletAvatar address={viewingApp?.freelancer.walletAddress || ""} size={56} />
+                  )}
+                  <div className="space-y-1">
+                     <h3 className="text-lg font-black text-black leading-tight">{viewingApp?.freelancer.fullName}</h3>
+                     <div className="flex items-center gap-2">
+                        <Badge className={`${STATUS_CONFIG[viewingApp?.status || "PENDING"]?.color} font-bold px-2 py-0.5 text-[10px] flex items-center gap-1.5 border-none shadow-none`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+                          {STATUS_CONFIG[viewingApp?.status || "PENDING"]?.label}
+                        </Badge>
+                        <div className="h-3 w-px bg-gray-200" />
+                        <span className="text-[11px] text-black font-bold flex items-center gap-1.5">
+                           <Icon name="verified_user" size={14} className="text-blue-500" />
+                           Tín nhiệm: {viewingApp?.freelancer.trustScore || 0}
+                        </span>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Skills & CV */}
+               <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pt-1">
+                  <div className="md:col-span-8 space-y-2">
+                    <h4 className="text-[10px] font-bold text-black uppercase tracking-widest">Kỹ năng chuyên môn</h4>
+                    <div className="flex flex-wrap gap-2.5">
+                       {viewingApp?.freelancer.skills && viewingApp.freelancer.skills.length > 0 ? (
+                         viewingApp.freelancer.skills.map(s => (
+                           <Badge key={s} variant="secondary" className="px-3 py-1 bg-gray-50 border border-gray-100 text-gray-800 font-bold rounded-lg text-xs shadow-sm">
+                             {s}
+                           </Badge>
+                         ))
+                       ) : (
+                         <span className="text-xs text-gray-400 italic">Chưa cập nhật</span>
+                       )}
+                    </div>
+                  </div>
+                  <div className="md:col-span-4 space-y-2">
+                    <h4 className="text-[10px] font-bold text-black uppercase tracking-widest">Hồ sơ chuyên môn (CV)</h4>
+                    {viewingApp?.cvFileUrl ? (
+                       <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-between h-8 py-1 px-3 text-[#00b14f]  rounded-lg group"
+                        onClick={() => handleDownload(viewingApp.cvFileUrl!, viewingApp.cvFileName || "CV.pdf")}
+                       >
+                          <div className="flex items-center">
+                            <Icon name="description" size={16} className="mr-2 text-red-500" />
+                            <span className="font-bold text-gray-700 text-[10px] line-clamp-1">{viewingApp.cvFileName || "Xem Profile CV"}</span>
+                          </div>
+                          <Icon name="download" size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                       </Button>
+                    ) : (
+                       <p className="text-[10px] text-gray-400 italic bg-gray-50 p-2 rounded-lg text-center border border-dashed border-gray-100">Không có CV.</p>
+                    )}
+                  </div>
+               </div>
+
+               <Separator className="opacity-50" />
+
+               {/* Cover Letter */}
+               <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold text-black uppercase tracking-widest">Thư ứng tuyển</h4>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-50/50 p-4 rounded-xl border border-gray-100/50">
+                     {viewingApp?.coverLetter || "Không có nội dung thư ứng tuyển."}
+                  </p>
+               </div>
+
+               <Separator className="opacity-50" />
+
+               {/* AI Evaluation */}
+               <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-bold text-black uppercase tracking-widest">Phân tích AI</h4>
+                    <div className="flex items-center gap-1.5">
+                       <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Điểm tương thích:</span>
+                       <span className="text-[11px] font-black">{(viewingApp as any)?.aiScore || 0}/100</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {(() => {
+                        const explanation = (viewingApp as any)?.aiExplanation || "";
+                        const isFormatMatch = explanation.toLowerCase().includes("điểm yếu:");
+                        
+                        if (!isFormatMatch) {
+                          return <div className="col-span-2 text-xs text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed italic">{explanation || "Chưa có đữ liệu phân tích"}</div>;
+                        }
+
+                        const parts = explanation.split(/điểm yếu:/i);
+                        const strengthsStr = parts[0].replace(/điểm mạnh:/i, "").trim();
+                        const weaknessesStr = parts[1]?.trim() || "";
+
+                        const renderPoints = (text: string) => text.split("\n").filter(l => l.trim()).map((line, i) => (
+                          <div key={i} className="flex gap-2 mb-1.5 last:mb-0 text-[13px] text-gray-700 font-normal leading-relaxed">
+                            <span className="font-bold opacity-30 mt-0.5">•</span>
+                            <span>{line.replace(/^- /g, "")}</span>
+                          </div>
+                        ));
+
+                        return (
+                          <>
+                            <div className="p-4 rounded-xl border border-green-100 bg-green-50/10">
+                              <p className="text-[11px] font-bold text-green-900 uppercase tracking-widest mb-3 border-b border-green-200 pb-2">Ưu điểm</p>
+                              <div className="space-y-1">{renderPoints(strengthsStr)}</div>
+                            </div>
+                            <div className="p-4 rounded-xl border border-red-100 bg-red-50/10">
+                              <p className="text-[11px] font-bold text-red-900 uppercase tracking-widest mb-3 border-b border-red-200 pb-2">Cần lưu ý</p>
+                              <div className="space-y-1">{renderPoints(weaknessesStr)}</div>
+                            </div>
+                          </>
+                        );
+                     })()}
+                  </div>
+               </div>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSkillsDialog(false)}>
-              Đóng
-            </Button>
+
+          <DialogFooter className="p-4 border-t bg-white">
+             <Button variant="ghost" size="sm" className="text-gray-500 font-bold text-[11px] hover:bg-gray-50" onClick={() => setShowDetailDialog(false)}>Đóng hồ sơ</Button>
+             <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => { setShowDetailDialog(false); handleAction(viewingApp!, "reject"); }}
+                  disabled={viewingApp?.status !== "PENDING" || !!processingId}
+                  className={`border-red-200 text-red-600 bg-white hover:bg-red-50 ${viewingApp?.status !== "PENDING" ? "hidden" : ""}`}
+                >
+                  Từ chối
+                </Button>
+                <Button
+                  onClick={() => { setShowDetailDialog(false); handleAction(viewingApp!, "accept"); }}
+                  disabled={viewingApp?.status !== "PENDING" || !!processingId || !viewingApp?.walletAddress}
+                  className={`bg-[#00b14f] hover:bg-[#009643] text-white ${viewingApp?.status !== "PENDING" ? "hidden" : ""}`}
+                >
+                  Chấp nhận
+                </Button>
+             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Cover Letter Dialog */}
-      <Dialog open={showCoverLetterDialog} onOpenChange={setShowCoverLetterDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Thư ứng tuyển</DialogTitle>
-          </DialogHeader>
-          <div className="border border-gray-200 rounded-lg bg-white">
-            {/* Email Header */}
-            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <span className="font-medium text-gray-500 w-12">Từ:</span>
-                <span className="text-gray-800">{viewingApp?.freelancer.fullName}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-600 mt-1">
-                <span className="font-medium text-gray-500 w-12">Ngày:</span>
-                <span className="text-gray-800">
-                  {viewingApp?.createdAt ? new Date(viewingApp.createdAt).toLocaleDateString("vi-VN", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                  }) : ""}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-600 mt-1">
-                <span className="font-medium text-gray-500 w-12">V/v:</span>
-                <span className="text-gray-800">Ứng tuyển vị trí công việc</span>
-              </div>
-            </div>
-            {/* Email Body */}
-            <div className="px-4 py-4">
-              {viewingApp?.coverLetter ? (
-                <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">{viewingApp.coverLetter}</div>
-              ) : (
-                <p className="text-gray-400 italic">Không có nội dung thư</p>
-              )}
-            </div>
-            {/* CV Attachment */}
-            {viewingApp?.cvFileUrl && (
-              <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-                <button
-                  onClick={() => handleDownload(viewingApp.cvFileUrl!, viewingApp.cvFileName || "CV_UngVien.pdf")}
-                  className="w-full inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                >
-                  <Icon name="picture_as_pdf" size={20} className="text-red-500" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{viewingApp.cvFileName || "CV.pdf"}</p>
-                    <p className="text-xs text-gray-500">Nhấn để tải CV</p>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCoverLetterDialog(false)}>
-              Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Batch Reject Dialog */}
       <Dialog open={showBatchRejectDialog} onOpenChange={(o) => !isBatchProcessing && setShowBatchRejectDialog(o)}>

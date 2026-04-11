@@ -26,6 +26,8 @@ export interface FormData {
   category: string;
   subCategory: string;
   tags: string[];
+  aiThresholdEnabled: boolean;
+  aiThresholdScore: number;
 }
 
 function toMinutes(value: number, unit: TimeUnit): number {
@@ -82,6 +84,8 @@ export function usePostJobForm(onSuccess?: () => void) {
     category: "",
     subCategory: "",
     tags: [],
+    aiThresholdEnabled: false,
+    aiThresholdScore: 70,
   }));
 
   const escrowAmount = formData.budget * (1 + PLATFORM_FEE_PERCENT / 100);
@@ -90,8 +94,12 @@ export function usePostJobForm(onSuccess?: () => void) {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    const numericFields = ["budget", "applicationDeadlineValue", "submissionValue", "reviewValue"];
+    const { name, value, type } = e.target;
+    if (type === "checkbox") {
+      setFormData((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+      return;
+    }
+    const numericFields = ["budget", "applicationDeadlineValue", "submissionValue", "reviewValue", "aiThresholdScore"];
     setFormData((prev) => ({
       ...prev,
       [name]: numericFields.includes(name) ? (value ? Number(value) : undefined) : value,
@@ -138,6 +146,10 @@ export function usePostJobForm(onSuccess?: () => void) {
     }
     if (!formData.subCategory) {
       toast.error("Vui lòng chọn tiểu mục công việc");
+      return false;
+    }
+    if (formData.aiThresholdEnabled && (formData.aiThresholdScore == null || formData.aiThresholdScore < 0 || formData.aiThresholdScore > 100)) {
+      toast.error("Điểm ngưỡng AI phải từ 0 đến 100");
       return false;
     }
     return true;
@@ -196,6 +208,8 @@ export function usePostJobForm(onSuccess?: () => void) {
         subCategoryId: formData.subCategory ? Number(formData.subCategory) : undefined,
         tags: formData.tags,
         saveAsDraft: true,
+        aiThresholdEnabled: formData.aiThresholdEnabled,
+        aiThresholdScore: formData.aiThresholdScore,
       });
 
       if (response.status === "SUCCESS" && response.data?.id) {
@@ -288,6 +302,8 @@ export function usePostJobForm(onSuccess?: () => void) {
           categoryId: formData.category ? Number(formData.category) : undefined,
           subCategoryId: formData.subCategory ? Number(formData.subCategory) : undefined,
           tags: formData.tags,
+          aiThresholdEnabled: formData.aiThresholdEnabled,
+          aiThresholdScore: formData.aiThresholdScore,
           escrowId,
           walletAddress: address,
           txHash,

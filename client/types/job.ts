@@ -83,6 +83,8 @@ export interface Job {
   category?: JobCategory;      // Thông tin danh mục
   subCategory?: JobSubCategory; // Thông tin danh mục con
   tags?: string[];            // Tags bổ sung (cùng dữ liệu với skills)
+  aiThresholdEnabled?: boolean;
+  aiThresholdScore?: number;
   // Dispute info (for DISPUTED status)
   disputeInfo?: {
     id: number;
@@ -117,6 +119,8 @@ export interface CreateJobRequest {
   walletAddress?: string;
   txHash?: string;
   saveAsDraft?: boolean;
+  aiThresholdEnabled?: boolean;
+  aiThresholdScore?: number;
 }
 
 export interface ContractTerm {
@@ -153,6 +157,8 @@ export interface UpdateJobRequest {
   walletAddress?: string;
   status?: "DRAFT" | "OPEN";
   contractHash?: string;
+  aiThresholdEnabled?: boolean;
+  aiThresholdScore?: number;
 }
 
 export interface JobSearchRequest {

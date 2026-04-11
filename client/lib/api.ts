@@ -217,8 +217,11 @@ export const api = {
   acceptApplication: (jobId: number, applicationId: number, txHash: string) =>
     request<JobApplication>(`/api/jobs/applications/${applicationId}/accept?txHash=${encodeURIComponent(txHash)}`, { method: "PUT" }),
 
-  rejectApplication: (jobId: number, applicationId: number) =>
-    request<JobApplication>(`/api/jobs/applications/${applicationId}/reject`, { method: "PUT" }),
+  rejectApplication: (jobId: number, applicationId: number, reason?: string) =>
+    request<JobApplication>(`/api/jobs/applications/${applicationId}/reject`, { 
+      method: "PUT", 
+      body: reason ? JSON.stringify({ reason }) : undefined 
+    }),
 
   batchRejectApplications: (jobId: number, applicationIds: number[]) =>
     request<{ successCount: number; failCount: number }>(`/api/jobs/${jobId}/applications/batch-reject`, {
