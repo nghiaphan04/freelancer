@@ -3,6 +3,7 @@
 import Icon from "@/components/ui/Icon";
 import { ChatMessage } from "@/lib/api";
 import { formatTime, getMessageStatusIcon } from "@/lib/format";
+import { handleDownload } from "@/lib/download";
 import MessageReply from "./MessageReply";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -35,15 +36,6 @@ export default function MessageBubble({
   const isImageMessage = message.messageType === "IMAGE" && message.file;
   const isFileMessage = message.messageType === "FILE" && message.file;
 
-  const handleDownload = (url: string, filename: string) => {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const renderImageMessage = () => {
     if (!message.file) return null;

@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import WalletAvatar from "@/components/ui/WalletAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { handleDownload } from "@/lib/download";
 
 interface JobHistoryTimelineProps {
   jobId: number;
@@ -119,12 +120,9 @@ export default function JobHistoryTimeline({ jobId }: JobHistoryTimelineProps) {
               )}
 
               {fileAttachment && (
-                <a
-                  href={fileAttachment.secureUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md bg-[#00b14f]/5 hover:bg-[#00b14f]/10 transition-colors mb-2"
+                <button
+                  onClick={() => handleDownload(fileAttachment.secureUrl, fileAttachment.originalFilename || "Tep_Da_Nop.pdf")}
+                  className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md bg-[#00b14f]/5 hover:bg-[#00b14f]/10 transition-colors mb-2 w-full text-left"
                 >
                   <Icon name="picture_as_pdf" size={18} className="text-red-500 shrink-0" />
                   <div className="flex-1 text-sm text-gray-700 truncate">
@@ -136,7 +134,7 @@ export default function JobHistoryTimeline({ jobId }: JobHistoryTimelineProps) {
                     )}
                   </div>
                   <Icon name="download" size={16} className="text-gray-500 shrink-0" />
-                </a>
+                </button>
               )}
 
               {/* User info */}

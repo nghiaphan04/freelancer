@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Dispute } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { renderEvidenceCard } from "./EvidenceCard";
 
 interface ViewDisputeDialogProps {
   open: boolean;
@@ -112,19 +113,7 @@ export function ViewDisputeDialog({ open, onOpenChange, dispute }: ViewDisputeDi
               Khiếu nại từ bên thuê: {dispute.employer.fullName}
             </h4>
             <p className="text-sm text-gray-600 whitespace-pre-wrap">{dispute.employerDescription}</p>
-            {dispute.employerEvidenceUrl && (
-              <a
-                href={dispute.employerEvidenceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                className="flex items-center gap-2 mt-3 px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
-              >
-                <Icon name="picture_as_pdf" size={20} className="text-red-500 shrink-0" />
-                <span className="flex-1 text-sm text-gray-700">Bằng chứng đính kèm</span>
-                <Icon name="download" size={18} className="text-gray-500 shrink-0" />
-              </a>
-            )}
+            {renderEvidenceCard(dispute.employerEvidenceFile, dispute.employerEvidenceUrl, "Bằng chứng bên thuê")}
           </div>
 
           {dispute.freelancerDescription ? (
@@ -133,19 +122,7 @@ export function ViewDisputeDialog({ open, onOpenChange, dispute }: ViewDisputeDi
                 Phản hồi từ người làm: {dispute.freelancer.fullName}
               </h4>
               <p className="text-sm text-gray-600 whitespace-pre-wrap">{dispute.freelancerDescription}</p>
-              {dispute.freelancerEvidenceUrl && (
-                <a
-                  href={dispute.freelancerEvidenceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="flex items-center gap-2 mt-3 px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
-                >
-                  <Icon name="picture_as_pdf" size={20} className="text-red-500 shrink-0" />
-                  <span className="flex-1 text-sm text-gray-700">Bằng chứng đính kèm</span>
-                  <Icon name="download" size={18} className="text-gray-500 shrink-0" />
-                </a>
-              )}
+              {renderEvidenceCard(dispute.freelancerEvidenceFile, dispute.freelancerEvidenceUrl, "Bằng chứng phản hồi")}
             </div>
           ) : dispute.evidenceDeadline ? (
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">

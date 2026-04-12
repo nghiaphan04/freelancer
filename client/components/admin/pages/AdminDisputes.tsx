@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/Icon";
 import { useWallet } from "@/context/WalletContext";
+import { handleDownload } from "@/lib/download";
 
 export default function AdminDisputes() {
   const { isConnected, connect, adminVote: walletAdminVote } = useWallet();
@@ -501,17 +502,14 @@ export default function AdminDisputes() {
                 </h4>
                 <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedDispute.employerDescription}</p>
                 {selectedDispute.employerEvidenceUrl && (
-                  <a
-                    href={selectedDispute.employerEvidenceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download
-                    className="flex items-center gap-2 mt-3 px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
+                  <button
+                    onClick={() => handleDownload(selectedDispute.employerEvidenceUrl!, "Bang_Chung_Ben_Thue.pdf")}
+                    className="flex items-center gap-2 mt-3 px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors w-full text-left"
                   >
                     <Icon name="picture_as_pdf" size={20} className="text-red-500 shrink-0" />
                     <span className="flex-1 text-sm text-gray-700">Bang chung dinh kem</span>
                     <Icon name="download" size={18} className="text-gray-500 shrink-0" />
-                  </a>
+                  </button>
                 )}
               </div>
 
@@ -523,17 +521,14 @@ export default function AdminDisputes() {
                   </h4>
                   <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedDispute.freelancerDescription}</p>
                   {selectedDispute.freelancerEvidenceUrl && (
-                    <a
-                      href={selectedDispute.freelancerEvidenceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
-                      className="flex items-center gap-2 mt-3 px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
+                    <button
+                      onClick={() => handleDownload(selectedDispute.freelancerEvidenceUrl!, "Bang_Chung_Nguoi_Lam.pdf")}
+                      className="flex items-center gap-2 mt-3 px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors w-full text-left"
                     >
                       <Icon name="picture_as_pdf" size={20} className="text-red-500 shrink-0" />
                       <span className="flex-1 text-sm text-gray-700">Bang chung dinh kem</span>
                       <Icon name="download" size={18} className="text-gray-500 shrink-0" />
-                    </a>
+                    </button>
                   )}
                 </div>
               ) : selectedDispute.evidenceDeadline ? (

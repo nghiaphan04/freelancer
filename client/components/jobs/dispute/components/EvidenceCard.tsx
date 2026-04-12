@@ -2,6 +2,7 @@
 
 import Icon from "@/components/ui/Icon";
 import { DisputeFileAttachment } from "@/lib/api";
+import { handleDownload } from "@/lib/download";
 
 export const formatFileSize = (bytes?: number) => {
   if (bytes === undefined) return "";
@@ -26,15 +27,13 @@ export function EvidenceCard({ url, name, size, label, onRemove }: EvidenceCardP
         <span className="font-medium">{name || label || "Tệp đính kèm"}</span>
         {size && <span className="block text-xs text-gray-500">{size}</span>}
       </div>
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        download
+      <button
+        type="button"
+        onClick={() => handleDownload(url, name || "evidence.pdf")}
         className="text-gray-500 hover:text-gray-700"
       >
         <Icon name="download" size={18} />
-      </a>
+      </button>
       {onRemove && (
         <button onClick={onRemove} className="text-gray-500 hover:text-gray-700">
           <Icon name="close" size={18} />
