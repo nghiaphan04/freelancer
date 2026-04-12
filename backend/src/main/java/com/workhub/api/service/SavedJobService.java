@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -106,7 +107,7 @@ public class SavedJobService {
                         .avatarUrl(employer.getAvatarUrl())
                         .walletAddress(employer.getWalletAddress())
                         .build())
-                .savedAt(savedJob.getCreatedAt())
+                .savedAt(savedJob.getCreatedAt() != null ? savedJob.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
                 .build();
     }
 }

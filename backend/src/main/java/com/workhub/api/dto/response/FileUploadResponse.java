@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
@@ -30,5 +30,5 @@ public class FileUploadResponse {
     private Long referenceId;
     private Long uploaderId;
     private String uploaderName;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 }

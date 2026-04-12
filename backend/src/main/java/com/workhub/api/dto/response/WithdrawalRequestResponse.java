@@ -7,7 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @Builder
@@ -25,8 +26,8 @@ public class WithdrawalRequestResponse {
     private String responseMessage;
     private RequesterInfo requester;
     private RequesterInfo responder;
-    private LocalDateTime respondedAt;
-    private LocalDateTime createdAt;
+    private OffsetDateTime respondedAt;
+    private OffsetDateTime createdAt;
 
     @Data
     @Builder
@@ -59,8 +60,8 @@ public class WithdrawalRequestResponse {
                         .fullName(request.getResponder().getFullName())
                         .avatarUrl(request.getResponder().getAvatarUrl())
                         .build() : null)
-                .respondedAt(request.getRespondedAt())
-                .createdAt(request.getCreatedAt())
+                .respondedAt(request.getRespondedAt() != null ? request.getRespondedAt().atOffset(ZoneOffset.UTC) : null)
+                .createdAt(request.getCreatedAt() != null ? request.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
                 .build();
     }
 

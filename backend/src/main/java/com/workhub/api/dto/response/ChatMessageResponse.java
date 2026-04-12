@@ -9,7 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @Builder
@@ -25,9 +26,9 @@ public class ChatMessageResponse {
     private EMessageStatus status; // SENT, DELIVERED, READ
     private Boolean isEdited;
     private Boolean isDeleted;
-    private LocalDateTime editedAt;
-    private LocalDateTime deletedAt;
-    private LocalDateTime createdAt;
+    private OffsetDateTime editedAt;
+    private OffsetDateTime deletedAt;
+    private OffsetDateTime createdAt;
     private ReplyInfo replyTo;
     private FileInfo file;
 
@@ -84,9 +85,9 @@ public class ChatMessageResponse {
                 .status(message.getStatus())
                 .isEdited(message.getIsEdited())
                 .isDeleted(message.getIsDeleted())
-                .editedAt(message.getEditedAt())
-                .deletedAt(message.getDeletedAt())
-                .createdAt(message.getCreatedAt());
+                .editedAt(message.getEditedAt() != null ? message.getEditedAt().atOffset(ZoneOffset.UTC) : null)
+                .deletedAt(message.getDeletedAt() != null ? message.getDeletedAt().atOffset(ZoneOffset.UTC) : null)
+                .createdAt(message.getCreatedAt() != null ? message.getCreatedAt().atOffset(ZoneOffset.UTC) : null);
 
         // Add reply info if exists
         if (message.getReplyTo() != null) {

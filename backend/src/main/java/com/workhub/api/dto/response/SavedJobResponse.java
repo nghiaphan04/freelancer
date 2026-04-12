@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Set;
 
 @Data
@@ -22,7 +22,7 @@ public class SavedJobResponse {
     private String jobStatus;
     private Set<String> jobSkills;
     private EmployerInfo employer;
-    private LocalDateTime savedAt;
+    private OffsetDateTime savedAt;
 
     @Data
     @Builder

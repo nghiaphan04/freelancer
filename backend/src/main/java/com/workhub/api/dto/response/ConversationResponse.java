@@ -10,7 +10,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @Builder
@@ -29,9 +30,9 @@ public class ConversationResponse {
     private Boolean lastMessageDeleted;
     private EMessageStatus lastMessageStatus;
     private Long lastMessageSenderId;
-    private LocalDateTime lastMessageTime;
+    private OffsetDateTime lastMessageTime;
     private Integer unreadCount;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     @Data
     @Builder
@@ -44,7 +45,7 @@ public class ConversationResponse {
         private String walletAddress;
         private String avatarUrl;
         private Boolean online;
-        private LocalDateTime lastActiveAt;
+        private OffsetDateTime lastActiveAt;
     }
 
     public static ConversationResponse fromEntity(Conversation conversation, Long currentUserId) {
@@ -59,7 +60,7 @@ public class ConversationResponse {
                         .walletAddress(otherUser.getWalletAddress())
                         .avatarUrl(otherUser.getAvatarUrl())
                         .online(false) // Will be updated by online status service
-                        .lastActiveAt(otherUser.getLastActiveAt())
+                        .lastActiveAt(otherUser.getLastActiveAt() != null ? otherUser.getLastActiveAt().atOffset(ZoneOffset.UTC) : null)
                         .build())
                 .status(conversation.getStatus())
                 .blockedById(conversation.getBlockedById())
@@ -70,9 +71,9 @@ public class ConversationResponse {
                 .lastMessageDeleted(conversation.getLastMessageDeleted())
                 .lastMessageStatus(conversation.getLastMessageStatus())
                 .lastMessageSenderId(conversation.getLastMessageSenderId())
-                .lastMessageTime(conversation.getLastMessageTime())
+                .lastMessageTime(conversation.getLastMessageTime() != null ? conversation.getLastMessageTime().atOffset(ZoneOffset.UTC) : null)
                 .unreadCount(conversation.getUnreadCountForUser(currentUserId))
-                .createdAt(conversation.getCreatedAt())
+                .createdAt(conversation.getCreatedAt() != null ? conversation.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
                 .build();
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -79,7 +80,7 @@ public class JobHistoryService {
                         .walletAddress(user.getWalletAddress())
                         .role(role)
                         .build())
-                .createdAt(history.getCreatedAt())
+                .createdAt(history.getCreatedAt() != null ? history.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
                 .fileAttachment(resolveFileAttachment(history))
                 .build();
     }

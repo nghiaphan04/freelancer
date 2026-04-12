@@ -5,7 +5,8 @@ import com.workhub.api.entity.EDisputeRoundStatus;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @Builder
@@ -21,10 +22,10 @@ public class DisputeRoundResponse {
     
     private String winnerWallet;
     private Boolean winnerIsEmployer;
-    private LocalDateTime votedAt;
+    private OffsetDateTime votedAt;
     
     private EDisputeRoundStatus status;
-    private LocalDateTime voteDeadline;
+    private OffsetDateTime voteDeadline;
     private Integer reselectionCount;
     
     private Long jobId;
@@ -46,9 +47,9 @@ public class DisputeRoundResponse {
                 .adminWallet(round.getAdminWallet())
                 .winnerWallet(round.getWinnerWallet())
                 .winnerIsEmployer(round.getWinnerIsEmployer())
-                .votedAt(round.getVotedAt())
+                .votedAt(round.getVotedAt() != null ? round.getVotedAt().atOffset(ZoneOffset.UTC) : null)
                 .status(round.getStatus())
-                .voteDeadline(round.getVoteDeadline())
+                .voteDeadline(round.getVoteDeadline() != null ? round.getVoteDeadline().atOffset(ZoneOffset.UTC) : null)
                 .reselectionCount(round.getReselectionCount())
                 .jobId(round.getDispute().getJob().getId())
                 .jobTitle(round.getDispute().getJob().getTitle())

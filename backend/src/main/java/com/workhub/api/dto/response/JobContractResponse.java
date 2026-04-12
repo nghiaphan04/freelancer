@@ -9,7 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 
@@ -30,11 +31,11 @@ public class JobContractResponse {
     private List<ContractTerm> terms;
     private String contractHash;
     private Boolean employerSigned;
-    private LocalDateTime employerSignedAt;
+    private OffsetDateTime employerSignedAt;
     private Boolean freelancerSigned;
-    private LocalDateTime freelancerSignedAt;
+    private OffsetDateTime freelancerSignedAt;
     private String freelancerSignatureTx;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
     
     @Data
     @NoArgsConstructor
@@ -66,11 +67,11 @@ public class JobContractResponse {
                 .terms(terms)
                 .contractHash(contract.getContractHash())
                 .employerSigned(contract.getEmployerSigned())
-                .employerSignedAt(contract.getEmployerSignedAt())
+                .employerSignedAt(contract.getEmployerSignedAt() != null ? contract.getEmployerSignedAt().atOffset(ZoneOffset.UTC) : null)
                 .freelancerSigned(contract.getFreelancerSigned())
-                .freelancerSignedAt(contract.getFreelancerSignedAt())
+                .freelancerSignedAt(contract.getFreelancerSignedAt() != null ? contract.getFreelancerSignedAt().atOffset(ZoneOffset.UTC) : null)
                 .freelancerSignatureTx(contract.getFreelancerSignatureTx())
-                .createdAt(contract.getCreatedAt())
+                .createdAt(contract.getCreatedAt() != null ? contract.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
                 .build();
     }
 }

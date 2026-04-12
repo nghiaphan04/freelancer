@@ -5,7 +5,7 @@ import com.workhub.api.entity.EWorkStatus;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Set;
 
 @Data
@@ -21,7 +21,7 @@ public class JobApplicationResponse {
     private String workStatusLabel;
     private String workSubmissionUrl;
     private String workSubmissionNote;
-    private LocalDateTime workSubmittedAt;
+    private OffsetDateTime workSubmittedAt;
     private String workRevisionNote;
     private String walletAddress;
     private String cvFileUrl;
@@ -29,8 +29,8 @@ public class JobApplicationResponse {
     private Double aiScore;
     private String aiExplanation;
     private String rejectionReason;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 
     @Data
     @Builder

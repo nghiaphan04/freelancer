@@ -5,7 +5,8 @@ import com.workhub.api.entity.EDisputeStatus;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @Builder
@@ -21,14 +22,14 @@ public class DisputeResponse {
     private String freelancerEvidenceUrl;
     private FileAttachment freelancerEvidenceFile;
     private String freelancerDescription;
-    private LocalDateTime evidenceDeadline;
+    private OffsetDateTime evidenceDeadline;
     private EDisputeStatus status;
     private String statusLabel;
     private String adminNote;
     private UserInfo resolvedBy;
-    private LocalDateTime resolvedAt;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private OffsetDateTime resolvedAt;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
     
     private Integer currentRound;
     private String round1WinnerWallet;
@@ -73,7 +74,7 @@ public class DisputeResponse {
                 .freelancerEvidenceUrl(dispute.getFreelancerEvidenceUrl())
                 .freelancerEvidenceFile(freelancerAttachment)
                 .freelancerDescription(dispute.getFreelancerDescription())
-                .evidenceDeadline(dispute.getEvidenceDeadline())
+                .evidenceDeadline(dispute.getEvidenceDeadline() != null ? dispute.getEvidenceDeadline().atOffset(ZoneOffset.UTC) : null)
                 .status(dispute.getStatus())
                 .statusLabel(getStatusLabel(dispute.getStatus()))
                 .adminNote(dispute.getAdminNote())
@@ -82,9 +83,9 @@ public class DisputeResponse {
                         .fullName(dispute.getResolvedBy().getFullName())
                         .avatarUrl(dispute.getResolvedBy().getAvatarUrl())
                         .build() : null)
-                .resolvedAt(dispute.getResolvedAt())
-                .createdAt(dispute.getCreatedAt())
-                .updatedAt(dispute.getUpdatedAt())
+                .resolvedAt(dispute.getResolvedAt() != null ? dispute.getResolvedAt().atOffset(ZoneOffset.UTC) : null)
+                .createdAt(dispute.getCreatedAt() != null ? dispute.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
+                .updatedAt(dispute.getUpdatedAt() != null ? dispute.getUpdatedAt().atOffset(ZoneOffset.UTC) : null)
                 .currentRound(dispute.getCurrentRound())
                 .round1WinnerWallet(dispute.getRound1WinnerWallet())
                 .round2WinnerWallet(dispute.getRound2WinnerWallet())

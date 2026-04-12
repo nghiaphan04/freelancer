@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -402,7 +403,7 @@ public class JobApplicationService {
                 .workStatusLabel(JobApplicationResponse.getWorkStatusLabel(application.getWorkStatus()))
                 .workSubmissionUrl(application.getWorkSubmissionUrl())
                 .workSubmissionNote(application.getWorkSubmissionNote())
-                .workSubmittedAt(application.getWorkSubmittedAt())
+                .workSubmittedAt(application.getWorkSubmittedAt() != null ? application.getWorkSubmittedAt().atOffset(ZoneOffset.UTC) : null)
                 .workRevisionNote(application.getWorkRevisionNote())
                 .walletAddress(application.getWalletAddress())
                 .cvFileUrl(cvFileUrl)
@@ -410,8 +411,8 @@ public class JobApplicationService {
                 .aiScore(application.getAiScore())
                 .aiExplanation(application.getAiExplanation())
                 .rejectionReason(application.getRejectionReason())
-                .createdAt(application.getCreatedAt())
-                .updatedAt(application.getUpdatedAt())
+                .createdAt(application.getCreatedAt() != null ? application.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
+                .updatedAt(application.getUpdatedAt() != null ? application.getUpdatedAt().atOffset(ZoneOffset.UTC) : null)
                 .build();
     }
 }

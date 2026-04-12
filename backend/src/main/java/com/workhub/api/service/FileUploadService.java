@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.ZoneOffset;
 import java.io.IOException;
 import java.util.*;
 
@@ -314,7 +315,7 @@ public class FileUploadService {
             .referenceId(file.getReferenceId())
             .uploaderId(file.getUploader().getId())
             .uploaderName(file.getUploader().getFullName())
-            .createdAt(file.getCreatedAt())
+            .createdAt(file.getCreatedAt() != null ? file.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
             .build();
     }
 }

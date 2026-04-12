@@ -4,7 +4,7 @@ import com.workhub.api.entity.EJobHistoryAction;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Data
 @Builder
@@ -17,7 +17,7 @@ public class JobHistoryResponse {
     private String metadata;
     private UserInfo user;
     private FileAttachment fileAttachment;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     @Data
     @Builder

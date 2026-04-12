@@ -12,7 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Set;
 
 @Data
@@ -34,20 +34,20 @@ public class JobResponse {
     private BigDecimal budget;
     private BigDecimal escrowAmount;
     private String currency;
-    private LocalDateTime applicationDeadline;
+    private OffsetDateTime applicationDeadline;
     private Integer submissionDays;
     private Integer reviewDays;
     private EJobStatus status;
-    private LocalDateTime workSubmissionDeadline;
-    private LocalDateTime workReviewDeadline;
+    private OffsetDateTime workSubmissionDeadline;
+    private OffsetDateTime workReviewDeadline;
     private Integer viewCount;
     private Integer applicationCount;
     private Boolean aiThresholdEnabled;
     private Double aiThresholdScore;
     private EmployerResponse employer;
     private FreelancerResponse freelancer;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 
     private String location;
     private CategoryResponse category;
@@ -57,7 +57,7 @@ public class JobResponse {
     private EWorkStatus workStatus;
     private String workSubmissionUrl;
     private String workSubmissionNote;
-    private LocalDateTime workSubmittedAt;
+    private OffsetDateTime workSubmittedAt;
 
     private Long escrowId;
     private String employerWalletAddress;
@@ -67,10 +67,10 @@ public class JobResponse {
     private String refundTxHash;
     private EPendingBlockchainAction pendingBlockchainAction;
     
-    private LocalDateTime acceptedAt;
-    private LocalDateTime signDeadline;
-    private LocalDateTime contractSignedAt;
-    private LocalDateTime jobWorkSubmittedAt;
+    private OffsetDateTime acceptedAt;
+    private OffsetDateTime signDeadline;
+    private OffsetDateTime contractSignedAt;
+    private OffsetDateTime jobWorkSubmittedAt;
 
     // Dispute info (for DISPUTED status)
     private DisputeInfo disputeInfo;
@@ -82,7 +82,7 @@ public class JobResponse {
     public static class DisputeInfo {
         private Long id;
         private String status;
-        private LocalDateTime evidenceDeadline;
+        private OffsetDateTime evidenceDeadline;
         private Boolean hasFreelancerEvidence;
         private Integer currentRound;
     }

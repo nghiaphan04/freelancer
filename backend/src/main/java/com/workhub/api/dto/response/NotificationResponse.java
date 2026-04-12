@@ -5,7 +5,8 @@ import com.workhub.api.entity.Notification;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @Builder
@@ -18,7 +19,7 @@ public class NotificationResponse {
     private Long referenceId;
     private String referenceType;
     private Boolean isRead;
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     public static NotificationResponse fromEntity(Notification notification) {
         return NotificationResponse.builder()
@@ -30,7 +31,7 @@ public class NotificationResponse {
                 .referenceId(notification.getReferenceId())
                 .referenceType(notification.getReferenceType())
                 .isRead(notification.getIsRead())
-                .createdAt(notification.getCreatedAt())
+                .createdAt(notification.getCreatedAt() != null ? notification.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
                 .build();
     }
 

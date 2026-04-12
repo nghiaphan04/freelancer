@@ -31,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -719,7 +721,7 @@ public class JobService {
                 disputeInfo = JobResponse.DisputeInfo.builder()
                         .id(dispute.getId())
                         .status(dispute.getStatus().name())
-                        .evidenceDeadline(dispute.getEvidenceDeadline())
+                        .evidenceDeadline(dispute.getEvidenceDeadline() != null ? dispute.getEvidenceDeadline().atOffset(ZoneOffset.UTC) : null)
                         .hasFreelancerEvidence(dispute.hasFreelancerEvidence())
                         .currentRound(dispute.getCurrentRound())
                         .build();
@@ -776,20 +778,20 @@ public class JobService {
                 .budget(job.getBudget())
                 .escrowAmount(job.getEscrowAmount())
                 .currency(job.getCurrency())
-                .applicationDeadline(job.getApplicationDeadline())
+                .applicationDeadline(job.getApplicationDeadline() != null ? job.getApplicationDeadline().atOffset(ZoneOffset.UTC) : null)
                 .submissionDays(job.getSubmissionDays() != null ? job.getSubmissionDays() / 1440 : null)
                 .reviewDays(job.getReviewDays() != null ? job.getReviewDays() / 1440 : null)
                 .status(job.getStatus())
-                .workSubmissionDeadline(job.getWorkSubmissionDeadline())
-                .workReviewDeadline(job.getWorkReviewDeadline())
+                .workSubmissionDeadline(job.getWorkSubmissionDeadline() != null ? job.getWorkSubmissionDeadline().atOffset(ZoneOffset.UTC) : null)
+                .workReviewDeadline(job.getWorkReviewDeadline() != null ? job.getWorkReviewDeadline().atOffset(ZoneOffset.UTC) : null)
                 .viewCount(job.getViewCount())
                 .applicationCount(job.getApplicationCount())
                 .aiThresholdEnabled(job.getAiThresholdEnabled())
                 .aiThresholdScore(job.getAiThresholdScore())
                 .employer(employerResponse)
                 .freelancer(freelancerResponse)
-                .createdAt(job.getCreatedAt())
-                .updatedAt(job.getUpdatedAt())
+                .createdAt(job.getCreatedAt() != null ? job.getCreatedAt().atOffset(ZoneOffset.UTC) : null)
+                .updatedAt(job.getUpdatedAt() != null ? job.getUpdatedAt().atOffset(ZoneOffset.UTC) : null)
                 .escrowId(job.getEscrowId())
                 .employerWalletAddress(job.getEmployerWalletAddress())
                 .freelancerWalletAddress(job.getFreelancerWalletAddress())
@@ -797,15 +799,15 @@ public class JobService {
                 .paymentTxHash(job.getPaymentTxHash())
                 .refundTxHash(job.getRefundTxHash())
                 .pendingBlockchainAction(job.getPendingBlockchainAction())
-                .acceptedAt(job.getAcceptedAt())
+                .acceptedAt(job.getAcceptedAt() != null ? job.getAcceptedAt().atOffset(ZoneOffset.UTC) : null)
                 // Standard: 24h deadline for signing
-                .signDeadline(job.getAcceptedAt() != null ? job.getAcceptedAt().plusHours(24) : null)
-                .contractSignedAt(job.getContractSignedAt())
-                .jobWorkSubmittedAt(job.getWorkSubmittedAt())
+                .signDeadline(job.getAcceptedAt() != null ? job.getAcceptedAt().plusHours(24).atOffset(ZoneOffset.UTC) : null)
+                .contractSignedAt(job.getContractSignedAt() != null ? job.getContractSignedAt().atOffset(ZoneOffset.UTC) : null)
+                .jobWorkSubmittedAt(job.getWorkSubmittedAt() != null ? job.getWorkSubmittedAt().atOffset(ZoneOffset.UTC) : null)
                 .workStatus(workStatus)
                 .workSubmissionUrl(workSubmissionUrl)
                 .workSubmissionNote(workSubmissionNote)
-                .workSubmittedAt(workSubmittedAt)
+                .workSubmittedAt(workSubmittedAt != null ? workSubmittedAt.atOffset(ZoneOffset.UTC) : null)
                 .disputeInfo(disputeInfo)
                 .build();
     }
@@ -818,7 +820,7 @@ public class JobService {
                     response.setWorkStatus(application.getWorkStatus());
                     response.setWorkSubmissionUrl(application.getWorkSubmissionUrl());
                     response.setWorkSubmissionNote(application.getWorkSubmissionNote());
-                    response.setWorkSubmittedAt(application.getWorkSubmittedAt());
+                    response.setWorkSubmittedAt(application.getWorkSubmittedAt() != null ? application.getWorkSubmittedAt().atOffset(ZoneOffset.UTC) : null);
                 });
 
         return response;
