@@ -43,8 +43,8 @@ public class DisputeService {
     private final BlockchainService blockchainService;
 
     // FOR TESTING: 48h -> 3 minutes, 24h -> 1.5 minutes
-    private static final int EVIDENCE_DEADLINE_SECONDS = 3600 ; // 3 minutes (was 48h)
-    private static final int VOTE_DEADLINE_SECONDS = 3600; // 3 minutes (was 48h)
+    private static final int EVIDENCE_DEADLINE_SECONDS = 3600*24 ; 
+    private static final int VOTE_DEADLINE_SECONDS = 3600*24 ; 
 
     @Transactional
     public ApiResponse<DisputeResponse> createDispute(Long jobId, Long userId, CreateDisputeRequest req, String txHash) {
